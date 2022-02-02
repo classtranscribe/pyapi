@@ -1,0 +1,14 @@
+connexion[swagger-ui]==2.7.0
+python-jose[cryptography]==3.3.0
+bcrypt==3.2.0
+requests==2.25.1
+six==1.16.0
+Werkzeug==2.0.1
+jsonschema==3.2.0
+prance==0.21.8.0
+Jinja2==3.0.1
+flask_sqlalchemy==2.5.1
+psycopg2-binary==2.9.3
+marshmallow-sqlalchemy==0.27.0
+marshmallow==3.14.1
+flask-marshmallow==0.14.0

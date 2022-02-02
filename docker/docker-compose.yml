@@ -1,0 +1,61 @@
+
+version: "3.9"
+
+services:
+  postgres:
+    container_name: "ct-postgres"
+    image: "postgres"
+    env_file:
+      - postgres.env
+    #networks:
+    #  - workbench
+    volumes:
+      - "~/dev-data/ct-postgres/pgdata:/var/lib/postgres/pgdata"
+    ports:
+      - "5432:5432"
+    restart: always
+
+  postgres:
+    container_name: "ct-rabbit"
+    image: "rabbit:management"
+    env_file:
+      - rabbitmq.env
+    #networks:
+    #  - workbench
+    ports:
+      - "5672:5672"
+    restart: always
+
+  api:
+    container_name: "ct-apiserver"
+    image: "classtranscribe/api"
+  #  depends_on:
+  #    - mongo-pydev
+  #    - etcd-pydev
+    #networks:
+    #  - workbench
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    volumes:
+      - "../:/app"
+    ports:
+      - "5000:5000"
+    env_file:
+      - apiserver.env
+    restart: always
+
+  taskengine:
+    container_name: "ct-taskengine"
+    image: "classtranscribe/taskengine"
+    build:
+      context: ../taskengine
+      dockerfile: Dockerfile
+    volumes:
+      - "../taskengine:/app"
+    env_file:
+      - taskengine.env
+    restart: always
+
+#networks:
+#  workbench:
