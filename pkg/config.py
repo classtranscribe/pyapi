@@ -10,7 +10,7 @@ logger = logging.getLogger('config')
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(basedir, 'db.sqlite')
-USE_SQLITE = os.getenv('USE_SQLITE', True)
+USE_SQLITE = os.getenv('USE_SQLITE', True).lower() in ('true', '1', 't')
 
 if not USE_SQLITE:
     POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'localhost')

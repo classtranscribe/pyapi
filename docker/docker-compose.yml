@@ -7,55 +7,55 @@ services:
     image: "postgres"
     env_file:
       - postgres.env
-    #networks:
-    #  - workbench
+    networks:
+      - classtranscribe
     volumes:
-      - "~/dev-data/ct-postgres/pgdata:/var/lib/postgres/pgdata"
-    ports:
-      - "5432:5432"
-    restart: always
+      - "pgdata:/var/lib/postgres/pgdata"
+    restart: unless_stopped
 
-  postgres:
+  rabbitmq:
     container_name: "ct-rabbit"
-    image: "rabbit:management"
+    image: "rabbitmq:management"
+    networks:
+      - classtranscribe
     env_file:
       - rabbitmq.env
-    #networks:
-    #  - workbench
-    ports:
-      - "5672:5672"
-    restart: always
+    restart: unless_stopped
 
   api:
     container_name: "ct-apiserver"
     image: "classtranscribe/api"
-  #  depends_on:
-  #    - mongo-pydev
-  #    - etcd-pydev
-    #networks:
-    #  - workbench
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - classtranscribe
     build:
       context: ..
       dockerfile: Dockerfile
     volumes:
       - "../:/app"
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5000:5000"
     env_file:
       - apiserver.env
-    restart: always
+    restart: unless_stopped
 
-  taskengine:
-    container_name: "ct-taskengine"
-    image: "classtranscribe/taskengine"
-    build:
-      context: ../taskengine
-      dockerfile: Dockerfile
-    volumes:
-      - "../taskengine:/app"
-    env_file:
-      - taskengine.env
-    restart: always
+  #taskengine:
+  #  container_name: "ct-taskengine"
+  #  image: "classtranscribe/taskengine"
+  #  build:
+  #    context: ../taskengine
+  #    dockerfile: Dockerfile
+  #  volumes:
+  #    - "../taskengine:/app"
+  #  env_file:
+  #    - taskengine.env
+  #  restart: always
 
-#networks:
-#  workbench:
+
+networks:
+  classtranscribe:
+
+volumes:
+  pgdata:
