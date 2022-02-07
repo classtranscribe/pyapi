@@ -11,7 +11,7 @@ services:
       - classtranscribe
     volumes:
       - "pgdata:/var/lib/postgres/pgdata"
-    restart: unless_stopped
+    restart: unless-stopped
 
   rabbitmq:
     container_name: "ct-rabbit"
@@ -20,7 +20,7 @@ services:
       - classtranscribe
     env_file:
       - rabbitmq.env
-    restart: unless_stopped
+    restart: unless-stopped
 
   api:
     container_name: "ct-apiserver"
@@ -39,7 +39,7 @@ services:
       - "0.0.0.0:5000:5000"
     env_file:
       - apiserver.env
-    restart: unless_stopped
+    restart: unless-stopped
 
   #taskengine:
   #  container_name: "ct-taskengine"
