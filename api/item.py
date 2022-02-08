@@ -3,6 +3,7 @@ from pkg.db.schemas.schema import ItemSchema
 from pkg.db.db import db
 from flask import request
 
+# Item (basic example)
 itemRepo = ItemRepo()
 itemSchema = ItemSchema()
 itemListSchema = ItemSchema(many=True)
@@ -44,3 +45,4 @@ def create():
 
 def get_all():
     return itemListSchema.dump(itemRepo.fetchAll()), 200
+
