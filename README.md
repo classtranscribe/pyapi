@@ -73,3 +73,8 @@ NOTE: In Docker on Mac/Windows, you may need to use your IP address instead of l
 
 
 ## TODO
+* Produce schemas/repositories for generated models
+* Test generated models with basic example
+* RabbitMQ connections
+* Parity for WebAPI behavior
+* Parity for TaskEngine subproject
