@@ -426,7 +426,7 @@
           {
             "name": "deleteExisting",
             "in": "query",
-            "description": "If true, existing transriptions are deleted first",
+            "description": "If true, existing transcriptions are deleted first",
             "schema": {
               "type": "boolean"
             }
@@ -526,7 +526,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Returns the sha1 commit hash and build number, or 'unspecified' if these are unknown\r\nExample result : {\"Commit\":\"hexadecimalnumber\",\"Build\":\"123\"}",
+        "summary": "Returns the sha1 commit hash and build number, or 'unspecified' if these are unknown\r\nExample result : {\"Commit\":\"hexadecimal_number\",\"Build\":\"123\"}",
         "responses": {
           "200": {
             "description": "Success",
@@ -1944,7 +1944,7 @@
         ],
         "parameters": [
           {
-            "name": "userId",
+            "name": "UserId",
             "in": "path",
             "required": true,
             "schema": {
@@ -6528,6 +6528,7 @@
     "securitySchemes": {
       "Bearer": {
         "type": "apiKey",
+        "x-apikeyInfoFunc": "pkg.jwt.validate_apikey_header",
         "description": "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: Bearer 12345abcde",
         "name": "Authorization",
         "in": "header"

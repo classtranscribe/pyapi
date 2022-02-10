@@ -41,6 +41,8 @@ def decode(jwt_token):
 
 
 def get_token_from_headers():
+    if 'X-API-TOKEN' not in connexion.request.headers:
+        return ''   # Missing credentials / token
     return connexion.request.headers.get('X-API-TOKEN')
 
 
@@ -55,7 +57,7 @@ def get_username_from_token():
 
 
 def validate_apikey_header():
-    if 'X_API_TOKEN' not in connexion.request.headers:
+    if 'X-API-TOKEN' not in connexion.request.headers:
         return 401   # Missing credentials / token
 
     try:

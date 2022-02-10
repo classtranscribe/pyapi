@@ -68,13 +68,13 @@ class FileRecords(Base):
     DeletedBy = Column(Text)
 
     Images = relationship('Images', back_populates='FileRecords')
-    Videos = relationship('Videos', foreign_keys=['Videos.AudioId'], back_populates='FileRecords')
-    Videos_ = relationship('Videos', foreign_keys=['Videos.ProcessedVideo1Id'], back_populates='FileRecords_')
-    Videos1 = relationship('Videos', foreign_keys=['Videos.ProcessedVideo2Id'], back_populates='FileRecords1')
-    Videos2 = relationship('Videos', foreign_keys=['Videos.Video1Id'], back_populates='FileRecords2')
-    Videos3 = relationship('Videos', foreign_keys=['Videos.Video2Id'], back_populates='FileRecords3')
-    Transcriptions = relationship('Transcriptions', foreign_keys=['Transcriptions.FileId'], back_populates='FileRecords')
-    Transcriptions_ = relationship('Transcriptions', foreign_keys=['Transcriptions.SrtFileId'], back_populates='FileRecords_')
+    Videos = relationship('Videos', foreign_keys='[Videos.AudioId]', back_populates='FileRecords')
+    Videos_ = relationship('Videos', foreign_keys='[Videos.ProcessedVideo1Id]', back_populates='FileRecords_')
+    Videos1 = relationship('Videos', foreign_keys='[Videos.ProcessedVideo2Id]', back_populates='FileRecords1')
+    Videos2 = relationship('Videos', foreign_keys='[Videos.Video1Id]', back_populates='FileRecords2')
+    Videos3 = relationship('Videos', foreign_keys='[Videos.Video2Id]', back_populates='FileRecords3')
+    Transcriptions = relationship('Transcriptions', foreign_keys='[Transcriptions.FileId]', back_populates='FileRecords')
+    Transcriptions_ = relationship('Transcriptions', foreign_keys='[Transcriptions.SrtFileId]', back_populates='FileRecords_')
 
 
 class Logs(Base):
@@ -288,11 +288,11 @@ class Videos(Base):
     DeletedBy = Column(Text)
     PhraseHints = Column(Text)
 
-    FileRecords = relationship('FileRecords', foreign_keys=[AudioId], back_populates='Videos')
-    FileRecords_ = relationship('FileRecords', foreign_keys=[ProcessedVideo1Id], back_populates='Videos_')
-    FileRecords1 = relationship('FileRecords', foreign_keys=[ProcessedVideo2Id], back_populates='Videos1')
-    FileRecords2 = relationship('FileRecords', foreign_keys=[Video1Id], back_populates='Videos2')
-    FileRecords3 = relationship('FileRecords', foreign_keys=[Video2Id], back_populates='Videos3')
+    FileRecords = relationship('FileRecords', foreign_keys='[Videos.AudioId]', back_populates='Videos')
+    FileRecords_ = relationship('FileRecords', foreign_keys='[Videos.ProcessedVideo1Id]', back_populates='Videos_')
+    FileRecords1 = relationship('FileRecords', foreign_keys='[Videos.ProcessedVideo2Id]', back_populates='Videos1')
+    FileRecords2 = relationship('FileRecords', foreign_keys='[Videos.Video1Id]', back_populates='Videos2')
+    FileRecords3 = relationship('FileRecords', foreign_keys='[Videos.Video2Id]', back_populates='Videos3')
     EPubs = relationship('EPubs', back_populates='Videos')
     Transcriptions = relationship('Transcriptions', back_populates='Videos')
     Medias = relationship('Medias', back_populates='Videos')

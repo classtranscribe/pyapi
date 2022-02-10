@@ -43,7 +43,6 @@ if __name__ == '__main__':
 
     # start the flask app on the specified port (default=5000)
     logging.info("Serving API on port %d..." % PORT)
-    connex_app.run(port=PORT,
-                   host='0.0.0.0',
-                   server='flask',
-                   debug=DEBUG)
+    app.run(port=PORT,
+            host='0.0.0.0',
+            debug=DEBUG)
