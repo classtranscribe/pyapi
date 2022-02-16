@@ -1,9 +1,48 @@
+import os
 import re
+import tempfile
 
 import connexion
+import requests
 from connexion import Resolver
 
 import logging
+
+from pkg.config import SWAGGER_URL
+
+
+# Downloads a remote swagger spec from the configured SWAGGER_URL and save it to a temp file.
+# Returns the path to the temp file created.
+def download_remote_swagger_to_temp_file(temp_file_name='swagger-keycloak.yml'):
+    try:
+        # fetch swagger spec, parse response
+        swagger_response = requests.get(SWAGGER_URL)
+        swagger_response.raise_for_status()
+        swagger_spec_text = swagger_response.text
+
+        # save swagger spec to temp file
+        temp_file_path = os.path.join(tempfile.gettempdir(), temp_file_name)
+        with open(temp_file_path, 'w') as f:
+            f.write(swagger_spec_text)
+
+        return temp_file_path
+    except requests.exceptions.RequestException as e:
+        logging.error("Failed to fetch swagger spec: %s" % e)
+        raise SystemExit(e)
+
+
+def load_swagger_spec(connex_app):
+    # add swagger spec via URL
+    if str.startswith(SWAGGER_URL, "http"):
+        # fetch remote openapi spec
+        connex_app.add_api(download_remote_swagger_to_temp_file(),
+                           resolver=OperationResolver('api'),
+                           arguments={'title': 'ClassTranscribe API'}, resolver_error=501)
+    else:
+        # use local openapi spec
+        connex_app.add_api(SWAGGER_URL,
+                           resolver=OperationResolver('api'),
+                           arguments={'title': 'ClassTranscribe API'}, resolver_error=501)
 
 
 class OperationResolver(Resolver):
@@ -65,11 +104,4 @@ class OperationResolver(Resolver):
             return name + '_' + method
 
 
-class DebugRestyResolver(connexion.RestyResolver):
-    def __init__(self):
-        self.logger = logging.getLogger('DebugRestyResolver')
 
-    def resolve_operation_id(self, operation):
-        result = super().resolve_operation_id(operation)
-        self.logger.debug(f"{operation} == {result}")
-        return result

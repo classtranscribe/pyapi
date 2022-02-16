@@ -1479,6 +1479,11 @@
     },
     "/api/Departments": {
       "get": {
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ],
         "operationId": "api.departments.get_all",
         "tags": [
           "Departments"
@@ -1703,6 +1708,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ],
         "operationId": "api.departments.delete",
         "tags": [
           "Departments"
