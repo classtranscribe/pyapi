@@ -4,7 +4,7 @@ import connexion
 
 from pkg import config, resolver
 from pkg.db.db import db, ma, print_sqlite_warning, get_redacted_db_uri
-from pkg.agent.rabbit import RabbitMqAgent
+from pkg.agent.rabbitpy_wrapper import rabbitpy_emitter as emitter
 
 DEBUG = config.DEBUG
 
@@ -46,17 +46,11 @@ if __name__ == '__main__':
     db.init_app(app)
     ma.init_app(app)
 
-    # configure the executor agent
-    agent = RabbitMqAgent()
-
     try:
-        # run the executor agent
-        agent.init_app()
-
         # start the flask app on the specified port (default=5000)
         logging.info("Serving API on port %d..." % PORT)
         app.run(port=PORT, host='0.0.0.0', debug=DEBUG)
     finally:
         logging.warning('Shutting down all RabbitMQ executors...')
-        agent.close_all()
+        emitter.close()
 

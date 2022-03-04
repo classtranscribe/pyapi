@@ -2,6 +2,8 @@ from pkg.db.models.repositories import DepartmentsRepo
 from pkg.db.schemas.schema import DepartmentsSchema
 from pkg.db.db import db
 from flask import request
+from pkg.agent.rabbitpy_wrapper import rabbitpy_emitter as agent
+from pkg import jwt
 
 # Departments
 deptRepo = DepartmentsRepo()
@@ -52,3 +54,13 @@ def create():
 
 def get_all():
     return deptListSchema.dump(deptRepo.fetchAll()), 200
+
+
+def publish_test_message():
+    agent.publish(body={
+        'hello': 'world',
+        'message': 'body'
+    }, routing_key="ExampleTask")
+    return "yay!", 200
+
+

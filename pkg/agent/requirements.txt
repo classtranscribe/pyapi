@@ -1,0 +1,2 @@
+# RabbitMQ
+rabbitpy==2.0.1

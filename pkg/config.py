@@ -1,6 +1,5 @@
 import datetime
 import os
-
 import logging
 
 DEBUG = os.getenv('DEBUG', 'true').lower() in ('true', '1', 't')
@@ -30,7 +29,7 @@ if not USE_SQLITE:
 
 # AMQP Connection
 RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@localhost:5672/%2f')
-RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', 'classtranscribe')
+RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', '')
 
 # JWT Auth
 JWT_SECRET = os.getenv('JWT_SECRET', 'thisisnotverysecret')

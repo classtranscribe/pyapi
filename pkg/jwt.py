@@ -41,9 +41,10 @@ def decode(jwt_token):
 
 
 def get_token_from_headers():
-    if 'X-API-TOKEN' not in connexion.request.headers:
+    if 'Authorization' not in connexion.request.headers:
         return ''   # Missing credentials / token
-    return connexion.request.headers.get('X-API-TOKEN')
+    return connexion.request.headers.get('Authorization').replace('Bearer ', '').replace('bearer ', '')
+
 
 
 def get_token_from_cookies():
@@ -56,14 +57,14 @@ def get_username_from_token():
     return claims['namespace']
 
 
-def validate_apikey_header():
-    if 'X-API-TOKEN' not in connexion.request.headers:
+def validate_apikey_header(apikey, required_scopes):
+    if 'Authorization' not in connexion.request.headers:
         return 401   # Missing credentials / token
 
     try:
         # Fetch and decode X-API-TOKEN header
         token = get_token_from_headers()
-        claims = jwt.decode(token)
+        claims = decode(token)
 
         # TODO: Check authorization
         # return 403  # Credentials fine, but user is not allowed
@@ -78,11 +79,10 @@ def validate_auth_cookie():
     if 'token' not in connexion.request.cookies:
         return 401   # Missing credentials / token
 
-
     try:
         # Fetch and decode Cookie
         token = get_token_from_cookies()
-        claims = jwt.decode(token)
+        claims = decode(token)
 
         # TODO: Check authorization
         # return 403  # Credentials fine, but user is not allowed
@@ -91,3 +91,4 @@ def validate_auth_cookie():
     except JWTError as e:
         logger.error('Failed to decode JWT: ', e)
         return 401  # Bad credentials / bad format
+

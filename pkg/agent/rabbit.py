@@ -5,7 +5,7 @@ from pika import exceptions as pika_exceptions
 from pkg import config
 from pkg.agent.tasks.QueueAwaker import QueueAwaker
 from pkg.agent.tasks.ExampleTask import ExampleTask
-from pkg.agent.tasks.CTTask import TaskNames
+from pkg.agent.constants import TaskNames
 
 
 RABBITMQ_CALLBACKS = {
