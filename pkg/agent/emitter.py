@@ -1,18 +1,25 @@
 import logging
 import rabbitpy
 
-from .tasks.QueueAwaker import QueueAwaker
-from .tasks.ExampleTask import ExampleTask
+try:
+    from pkg.agent.tasks.QueueAwaker import QueueAwaker
+    from pkg.agent.tasks.ExampleTask import ExampleTask
+    from pkg.agent.tasks.SceneDetection import SceneDetection
 
-from pkg import config
+    from pkg.agent.constants import RABBITMQ_URI, RABBITMQ_EXCHANGE
+except ImportError:
+    from tasks.QueueAwaker import QueueAwaker
+    from tasks.ExampleTask import ExampleTask
+    from tasks.SceneDetection import SceneDetection
 
-# source from pkg/config.py
-RABBITMQ_URI = config.RABBITMQ_URI
-RABBITMQ_EXCHANGE = config.RABBITMQ_EXCHANGE
+    from constants import RABBITMQ_URI, RABBITMQ_EXCHANGE
+
+# AMQP Connection
 
 RABBITMQ_CALLBACKS = {
-    'QueueAwaker': QueueAwaker().callback,
-    'ExampleTask': ExampleTask().callback,
+    'QueueAwaker': QueueAwaker().rabbitpy_callback,
+    'ExampleTask': ExampleTask().rabbitpy_callback,
+    'SceneDetection': SceneDetection().rabbitpy_callback,
 }
 
 

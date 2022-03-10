@@ -32,7 +32,6 @@ services:
       - classtranscribe
     build:
       context: ..
-      dockerfile: Dockerfile
     volumes:
       - "../:/app"
     ports:
@@ -40,6 +39,60 @@ services:
     env_file:
       - apiserver.env
     restart: unless-stopped
+
+  queueawaker:
+    container_name: "ct-queueawaker"
+    image: "classtranscribe/taskagent"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - api
+    networks:
+      - classtranscribe
+    build:
+      context: ../pkg/agent
+      dockerfile: ../pkg/agent/Dockerfile
+    env_file:
+      - apiserver.env
+    environment:
+      - RABBITMQ_QUEUENAME=QueueAwaker
+    restart: unless-stopped
+
+  scenedetection:
+    container_name: "ct-scenedetection"
+    image: "classtranscribe/taskagent"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - api
+    networks:
+      - classtranscribe
+    build:
+      context: ../pkg/agent
+    env_file:
+      - apiserver.env
+    environment:
+      - RABBITMQ_QUEUENAME=SceneDetection
+    restart: unless-stopped
+
+  exampletask:
+    container_name: "ct-exampletask"
+    image: "classtranscribe/taskagent"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - api
+    networks:
+      - classtranscribe
+    build:
+      context: ../pkg/agent
+    env_file:
+      - apiserver.env
+    environment:
+      - RABBITMQ_QUEUENAME=ExampleTask
+    restart: unless-stopped
+
+
 
   #taskengine:
   #  container_name: "ct-taskengine"

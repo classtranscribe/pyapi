@@ -1,2 +1,5 @@
 # RabbitMQ
 rabbitpy==2.0.1
+
+# PostgreSQL
+psycopg2-binary==2.9.3

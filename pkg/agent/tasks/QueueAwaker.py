@@ -1,25 +1,23 @@
-import logging
 import time
 
-# no internal dependencies
+from .AbstractTask import AbstractTask
 
-class QueueAwaker:
+
+class QueueAwaker(AbstractTask):
     @staticmethod
     def get_name():
         return "QueueAwaker"
 
-    def __init__(self):
-        self.logger = logging.getLogger(QueueAwaker.get_name())
-
-    def callback(self, message):
-        start_time = time.time_ns() / 1000000
-        body = message.json()
-        self.logger.info(" [✓] Running QueueAwaker: %s" % str(body))
+    def run_task(self, body, emitter):
+        self.logger.info(' [.] QueueAwaker triggering SceneDetection in 10s...')
 
         # Insert task logic here
+        time.sleep(10)
 
-        self.logger.info(" [✓] Done")
-        end_time = time.time_ns() / 1000000
-        duration = end_time - start_time
-        self.logger.debug(' [✓] %s completed in %d ms' % (self.get_name(), duration))
-        message.ack()
+        # Proof-of-concept execution of DAGs
+        self.logger.info(' [.] QueueAwaker now triggering: SceneDetection...')
+        emitter.publish(routing_key='SceneDetection', body=body)
+
+        # Insert more task logic here
+        time.sleep(3)
+        return

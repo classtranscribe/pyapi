@@ -2,16 +2,17 @@ import logging
 import os
 import sys
 
-from listener import RabbitMqListener
+from psycopg2 import Error
 
-# TODO: No access to config here?
+from listener import RabbitMqListener
+from constants import RABBITMQ_URI, RABBITMQ_EXCHANGE, SQLALCHEMY_DATABASE_URI
+from psycopg_wrapper import db
+
 RABBITMQ_QUEUENAME = os.getenv('RABBITMQ_QUEUENAME', '')
-RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@localhost:5672/%2f')
-RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', '')
 
 
 if __name__ == '__main__':
-    DEBUG = os.getenv('DEBUG', True)
+    DEBUG = os.getenv('DEBUG', False)
 
     # configure logging
     if DEBUG:
@@ -28,12 +29,24 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # NOTE: RABBITMQ_EXCHANGE is optional
+    if RABBITMQ_EXCHANGE is None or RABBITMQ_EXCHANGE == '':
+        logging.warning("Using RabbitMQ default exchange")
+    else:
+        logging.warning("Using RabbitMQ exchange: %s" % RABBITMQ_EXCHANGE)
 
     listener = RabbitMqListener(RABBITMQ_QUEUENAME)
 
     try:
-        logging.info('Starting RabbitMqListener: %s' % RABBITMQ_QUEUENAME)
+        logging.info('Connecting to PostgreSQL: %s' % SQLALCHEMY_DATABASE_URI)
+        db.connect()
+
+        logging.info('Connecting to RabbitMQ: %s' % RABBITMQ_URI)
         listener.start_consuming()
+
+    except (Exception, Error) as error:
+        logging.error("Error while connecting to PostgreSQL: %s" % str(error))
     finally:
-        logging.warning('Shtopping RabbitMqListener: %s' % RABBITMQ_QUEUENAME)
+        logging.warning('Shutting down RabbitMQ connection...')
         listener.close()
+        logging.warning('Shutting down PostgreSQL connection...')
+        db.close()

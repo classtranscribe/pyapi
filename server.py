@@ -29,18 +29,13 @@ if __name__ == '__main__':
 
     # configure database connection
     if config.USE_SQLITE:
+        logging.info('Using SQLite: %s' % config.SQLALCHEMY_DATABASE_URI)
         print_sqlite_warning()
     else:
         logging.info('Connecting to Postgres: %s' % (get_redacted_db_uri()))
 
     # configure Flask + Connexion app
     resolver.load_swagger_spec(connex_app)
-
-    # configure logging
-    if DEBUG:
-        logging.basicConfig(format='%(asctime)-15s %(message)s', level=logging.DEBUG)
-    else:
-        logging.basicConfig(format='%(asctime)-15s %(message)s', level=logging.INFO)
 
     # connect app with sqlalchemy and marshmallow
     db.init_app(app)
@@ -49,7 +44,7 @@ if __name__ == '__main__':
     try:
         # start the flask app on the specified port (default=5000)
         logging.info("Serving API on port %d..." % PORT)
-        app.run(port=PORT, host='0.0.0.0', debug=DEBUG)
+        app.run(port=PORT, host='0.0.0.0', debug=True)   # DEBUG)
     finally:
         logging.warning('Shutting down all RabbitMQ executors...')
         emitter.close()

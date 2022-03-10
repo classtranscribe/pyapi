@@ -2,7 +2,14 @@ import datetime
 import os
 import logging
 
-DEBUG = os.getenv('DEBUG', 'true').lower() in ('true', '1', 't')
+from pkg.agent import constants
+
+# AMQP Connection
+RABBITMQ_URI = constants.RABBITMQ_URI
+RABBITMQ_EXCHANGE = constants.RABBITMQ_EXCHANGE
+
+
+DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 't')
 PORT = os.getenv('PORT', 5000)
 
 if DEBUG:
@@ -14,22 +21,8 @@ else:
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 PROPAGATE_EXCEPTIONS = True
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(basedir, 'db.sqlite')
-USE_SQLITE = os.getenv('USE_SQLITE', 'true').lower() in ('true', '1', 't')
-
-if not USE_SQLITE:
-    POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'localhost')
-    POSTGRES_PORT = os.getenv('POSTGRES_PORT', 5432)
-    POSTGRES_USER = os.getenv('POSTGRES_USER', '')
-    POSTGRES_PASS = os.getenv('POSTGRES_PASS', '')
-    POSTGRES_DB = os.getenv('POSTGRES_DB', '')
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://%s:%s@%s:%s/%s' \
-                              % (POSTGRES_USER, POSTGRES_PASS, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
-
-# AMQP Connection
-RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@localhost:5672/%2f')
-RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', '')
+USE_SQLITE = constants.USE_SQLITE
+SQLALCHEMY_DATABASE_URI = constants.SQLALCHEMY_DATABASE_URI
 
 # JWT Auth
 JWT_SECRET = os.getenv('JWT_SECRET', 'thisisnotverysecret')
