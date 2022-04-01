@@ -27,11 +27,14 @@ def get_by_university_id(university_id):
 
 
 def update(id):
+    return save(id, request.get_json())
+
+
+def save(id, updated):
     dept_data = deptRepo.fetchById(id)
-    dept_req_json = request.get_json()
     if dept_data:
-        dept_data.name = dept_req_json['name']
-        dept_data.price = dept_req_json['price']
+        dept_data.name = updated['name']
+        dept_data.price = updated['price']
         deptRepo.update(dept_data)
         return deptSchema.dump(dept_data)
     return {'message': DEPT_NOT_FOUND.format(id)}, 404
@@ -57,10 +60,16 @@ def get_all():
 
 
 def publish_test_message():
-    agent.publish(body={
+    # example video id
+    video_id = 'daf8d0c2-dfad-4d2f-91fd-20954bc1f2dc'
+    body = {
         'hello': 'world',
-        'message': 'body'
-    }, routing_key="ExampleTask")
-    return "yay!", 200
+        'message': 'body',
+        'video_id': video_id,
+        'force': True
+    }
+
+    agent.publish(body=body, routing_key="SceneDetection")
+    return body, 200
 
 

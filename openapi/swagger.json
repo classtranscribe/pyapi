@@ -1479,12 +1479,7 @@
     },
     "/api/Departments": {
       "get": {
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ],
-        "operationId": "api.departments.get_all",
+        "operationId": "api.departments.publish_test_message",
         "tags": [
           "Departments"
         ],
@@ -6544,10 +6539,5 @@
         "in": "header"
       }
     }
-  },
-  "security": [
-    {
-      "Bearer": [ ]
-    }
-  ]
+  }
 }
