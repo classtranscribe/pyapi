@@ -1,14 +1,12 @@
 import os
-import re
 import tempfile
 
-import connexion
 import requests
 from connexion import Resolver
 
 import logging
 
-from pkg.config import SWAGGER_URL
+from config import SWAGGER_URL
 
 
 # Downloads a remote swagger spec from the configured SWAGGER_URL and save it to a temp file.

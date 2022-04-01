@@ -2,8 +2,11 @@ import logging
 
 import connexion
 
-from pkg import config, resolver
-from pkg.db.db import db, ma, print_sqlite_warning, get_redacted_db_uri
+import config
+
+from pkg import resolver
+from config import USE_SQLITE, SQLALCHEMY_DATABASE_URI, POSTGRES_USER, POSTGRES_PASS, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, get_redacted_db_uri, print_sqlite_warning
+from pkg.db.db import db, ma
 from pkg.agent.rabbitpy_wrapper import rabbitpy_emitter as emitter
 
 DEBUG = config.DEBUG
@@ -17,6 +20,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.SQLALCHEMY_TRACK_MODIFICATIONS
 app.config['PROPAGATE_EXCEPTIONS'] = config.PROPAGATE_EXCEPTIONS
 
+# configure database connection
+if USE_SQLITE:
+    logging.info('Using SQLite: %s' % SQLALCHEMY_DATABASE_URI)
+    print_sqlite_warning()
+else:
+    logging.info('Connecting to Postgres: %s' % (get_redacted_db_uri()))
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://%s:%s@%s:%s/%s' \
+                            % (POSTGRES_USER, POSTGRES_PASS, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
+
 
 # init and create database tables
 @app.before_first_request
@@ -26,13 +38,6 @@ def create_tables():
 
 if __name__ == '__main__':
     PORT = config.PORT
-
-    # configure database connection
-    if config.USE_SQLITE:
-        logging.info('Using SQLite: %s' % config.SQLALCHEMY_DATABASE_URI)
-        print_sqlite_warning()
-    else:
-        logging.info('Connecting to Postgres: %s' % (get_redacted_db_uri()))
 
     # configure Flask + Connexion app
     resolver.load_swagger_spec(connex_app)
@@ -44,7 +49,7 @@ if __name__ == '__main__':
     try:
         # start the flask app on the specified port (default=5000)
         logging.info("Serving API on port %d..." % PORT)
-        app.run(port=PORT, host='0.0.0.0', debug=True)   # DEBUG)
+        app.run(port=PORT, host='0.0.0.0', debug=DEBUG)
     finally:
         logging.warning('Shutting down all RabbitMQ executors...')
         emitter.close()

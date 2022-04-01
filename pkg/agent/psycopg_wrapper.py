@@ -2,7 +2,8 @@ import logging
 import psycopg2
 import sqlite3
 
-from constants import POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASS, POSTGRES_PORT, POSTGRES_DB, USE_SQLITE, SQLITE_PATH
+from config import POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASS, POSTGRES_PORT, POSTGRES_DB, USE_SQLITE, \
+    SQLITE_PATH
 
 
 class DbAdapter:
@@ -35,6 +36,18 @@ class DbAdapter:
         self.logger.info("You are connected to - %s" % str(record))
 
         return self.connection, self.cursor
+
+
+    def get_video(self, video_id):
+        self.cursor.execute('SELECT * from "Video" where "Id"=\'%s\'' % video_id)
+
+
+    def save_video_scenes(self, video_id, scenes):
+        self.cursor.execute('UPDATE "Video" SET "Scenes"="%s" where "Id"=\'%s\'' % (scenes, video_id))
+
+
+    def save_video_phrase_hints(self, video_id, phrase_hints):
+        self.cursor.execute('UPDATE "Video" SET "PhraseHints"="%s" where "Id"=\'%s\'' % (phrase_hints, video_id))
 
 
     def close(self):

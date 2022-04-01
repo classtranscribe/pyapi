@@ -1,19 +1,11 @@
 import logging
 import rabbitpy
 
-from tasks.QueueAwaker import QueueAwaker
-from tasks.ExampleTask import ExampleTask
-from tasks.SceneDetection import SceneDetection
+from config import RABBITMQ_URI, RABBITMQ_EXCHANGE
 
-from constants import RABBITMQ_URI, RABBITMQ_EXCHANGE
-
-from emitter import RabbitMqEmitter
-
-RABBITMQ_CALLBACKS = {
-    'QueueAwaker': QueueAwaker().rabbitpy_callback,
-    'ExampleTask': ExampleTask().rabbitpy_callback,
-    'SceneDetection': SceneDetection().rabbitpy_callback,
-}
+from pkg.agent.emitter import RabbitMqEmitter
+from pkg.agent.psycopg_wrapper import db
+from pkg.agent.constants import RABBITMQ_CALLBACKS
 
 
 # RabbitMqEmitter is used to consume messages from a specific queue
@@ -31,28 +23,6 @@ class RabbitMqListener(RabbitMqEmitter):
         self.logger = logging.getLogger('agent.agent.rabbit.RabbitMqListener.%s' % queue_name)
         self.init_queue(queue_name)
         self.thread = None
-
-    def init_exchange(self):
-        if RABBITMQ_EXCHANGE != '':
-            self.exchange = rabbitpy.Exchange(channel=self.channel, name=RABBITMQ_EXCHANGE)
-            self.exchange.declare()
-
-    def init_queues(self):
-        for queue_name in RABBITMQ_CALLBACKS.keys():
-            self.init_queue(queue_name=queue_name)
-
-    def init_queue(self, queue_name):
-        queue = rabbitpy.Queue(channel=self.channel, name=queue_name, durable=True)
-        queue.declare()
-        return queue
-
-    def cleanup(self):
-        if self.channel is not None:
-            self.channel.close()
-            self.channel = None
-        if self.connection is not None:
-            self.connection.close()
-            self.connection = None
 
     def start_consuming(self):
         self.logger.debug(" [✓] Started listening on queue: %s" % self.queue_name)

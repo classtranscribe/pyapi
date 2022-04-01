@@ -1,26 +1,11 @@
 import logging
 import rabbitpy
 
-try:
-    from pkg.agent.tasks.QueueAwaker import QueueAwaker
-    from pkg.agent.tasks.ExampleTask import ExampleTask
-    from pkg.agent.tasks.SceneDetection import SceneDetection
 
-    from pkg.agent.constants import RABBITMQ_URI, RABBITMQ_EXCHANGE
-except ImportError:
-    from tasks.QueueAwaker import QueueAwaker
-    from tasks.ExampleTask import ExampleTask
-    from tasks.SceneDetection import SceneDetection
-
-    from constants import RABBITMQ_URI, RABBITMQ_EXCHANGE
-
+from config import RABBITMQ_URI, RABBITMQ_EXCHANGE
+from pkg.agent.constants import RABBITMQ_CALLBACKS
 # AMQP Connection
 
-RABBITMQ_CALLBACKS = {
-    'QueueAwaker': QueueAwaker().rabbitpy_callback,
-    'ExampleTask': ExampleTask().rabbitpy_callback,
-    'SceneDetection': SceneDetection().rabbitpy_callback,
-}
 
 
 # RabbitMqEmitter is used to publish messages to a specific queue

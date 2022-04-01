@@ -1,6 +1,6 @@
 import time
 
-from .AbstractTask import AbstractTask
+from .AbstractTask import AbstractTask, TaskNames
 
 # no internal dependencies
 
@@ -8,7 +8,7 @@ from .AbstractTask import AbstractTask
 class ExampleTask(AbstractTask):
     @staticmethod
     def get_name():
-        return "ExampleTask"
+        return TaskNames.ExampleTask
 
     def run_task(self, body, emitter):
         self.logger.info(' [.] ExampleTask now running...')

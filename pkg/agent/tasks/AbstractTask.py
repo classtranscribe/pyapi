@@ -1,11 +1,22 @@
 import logging
 from abc import ABC, abstractmethod
 import time
+from enum import Enum
+
+
+# Map task to queuename
+class TaskNames(Enum):
+    QueueAwaker = 'QueueAwaker'                     # QueueAwaker
+    ExampleTask = 'ExampleTask'                     # ExampleTask
+    SceneDetection = 'SceneDetection'               # SceneDetection
+    TranscriptionTask = 'TranscriptionTask'         # TranscriptionTask
+    # ... Add new tasks here
 
 
 class AbstractTask(ABC):
 
     @staticmethod
+    @abstractmethod
     def get_name():
         pass
 
@@ -13,12 +24,12 @@ class AbstractTask(ABC):
         self.logger = logging.getLogger("pkg.agent.tasks.%s" % self.get_name())
 
     def rabbitpy_callback(self, message, emitter):
-        try:
+        #try:
             body = message.json()
             self.run_timed_task(body=body, emitter=emitter)
             message.ack()
-        except Exception as e:
-            self.logger.error(" [x] Failed running %s: %s" % (self.get_name(), str(e)))
+        #except Exception as e:
+        #    self.logger.error(" [x] Failed running %s: %s" % (self.get_name(), str(e)))
 
     @abstractmethod
     def run_task(self, body, emitter):
