@@ -1,3 +1,5 @@
+import logging
+
 from pkg.db.models.repositories import DepartmentsRepo
 from pkg.db.schemas.schema import DepartmentsSchema
 from pkg.db.db import db
@@ -10,6 +12,8 @@ deptRepo = DepartmentsRepo()
 deptSchema = DepartmentsSchema()
 deptListSchema = DepartmentsSchema(many=True)
 DEPT_NOT_FOUND = "Departments not found for id: {}"
+
+logger = logging.getLogger('api.departments')
 
 
 def get(id):
@@ -61,15 +65,21 @@ def get_all():
 
 def publish_test_message():
     # example video id
-    video_id = 'daf8d0c2-dfad-4d2f-91fd-20954bc1f2dc'
+    video_id = '7fc3b0a5-ae81-4a46-b369-d3fb14eb0866'
+    # video_id = 'f6bce30b-d5d5-462c-a74d-e56ece954ca8'
+
+    # all tasks should have the same body structure
     body = {
-        'hello': 'world',
-        'message': 'body',
-        'video_id': video_id,
-        'force': True
+        'Data': video_id,
+        # 'Data': 'db2090f7-09f2-459a-84b9-96bd2f506f68',
+        'TaskParameters': {'Force': False, 'Metadata': None, 'ReadOnly': True}
     }
 
-    agent.publish(body=body, routing_key="SceneDetection")
+    try:
+        agent.publish(body=body, routing_key="PhraseHinter")
+    except Exception as e:
+        logger.error("Failed to publish message: " + str(e))
+
     return body, 200
 
 
