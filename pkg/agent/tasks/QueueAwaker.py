@@ -9,14 +9,14 @@ class QueueAwaker(AbstractTask):
         return "QueueAwaker"
 
     def run_task(self, body, emitter):
-        self.logger.info(' [.] QueueAwaker triggering SceneDetection in 10s...')
+        self.logger.info(' [.] QueueAwaker triggering SceneDetection in 10s: %s' % body)
 
         # Insert task logic here
         time.sleep(10)
 
         # Proof-of-concept execution of DAGs
-        self.logger.info(' [.] QueueAwaker now triggering: SceneDetection...')
-        emitter.publish(routing_key='SceneDetection', body=body)
+        self.logger.info(' [.] QueueAwaker now triggering: SceneDetection: %s' % body)
+        #emitter.publish(routing_key='SceneDetection', body=body)
 
         # Insert more task logic here
         time.sleep(3)

@@ -1,21 +1,21 @@
+import json
 import logging
 import rabbitpy
 
-
+import config
 from config import RABBITMQ_URI, RABBITMQ_EXCHANGE
 from pkg.agent.constants import RABBITMQ_CALLBACKS
 # AMQP Connection
 
 
-
 # RabbitMqEmitter is used to publish messages to a specific queue
 class RabbitMqEmitter:
     def __init__(self):
-        self.logger = logging.getLogger('pkg.agent.rabbit.RabbitMqEmitter')
+        self.logger = logging.getLogger('agent.emitter')
         self.connection = rabbitpy.Connection(url=RABBITMQ_URI)
         self.channel = self.connection.channel()
         self.channel.enable_publisher_confirms()
-        self.exchange = RABBITMQ_EXCHANGE
+        self.exchange = None
         self.init_queues()
 
     def init_exchange(self):
@@ -24,12 +24,18 @@ class RabbitMqEmitter:
             self.exchange.declare()
 
     def init_queues(self):
+        self.init_exchange()
         for queue_name in RABBITMQ_CALLBACKS.keys():
             self.init_queue(queue_name=queue_name)
 
     def init_queue(self, queue_name):
         queue = rabbitpy.Queue(channel=self.channel, name=queue_name, durable=True)
         queue.declare()
+
+        # TODO: If not using default exchange, bind queue to exchange
+        if RABBITMQ_EXCHANGE != '':
+            queue.bind(self.exchange, routing_key=queue_name)
+
         return queue
 
     def cleanup(self):
@@ -42,8 +48,11 @@ class RabbitMqEmitter:
 
     def publish(self, body, routing_key=''):
         if routing_key in list(RABBITMQ_CALLBACKS.keys()):
-            message = rabbitpy.Message(channel=self.channel, body_value=body)
-            message.publish(exchange=self.exchange, routing_key=routing_key, mandatory=True)
+            try:
+                message = rabbitpy.Message(channel=self.channel, body_value=body)
+                message.publish(exchange=RABBITMQ_EXCHANGE, routing_key=routing_key, mandatory=True)
+            except Exception as e:
+                self.logger.error(" [⚠] Failed to publish message: %s" % e)
         else:
             self.logger.warning('Unrecognized queue name: %s' % routing_key)
 

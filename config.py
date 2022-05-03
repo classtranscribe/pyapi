@@ -7,6 +7,9 @@ PORT = os.getenv('PORT', 5000)
 DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 't')
 DOWNLOAD_MISSING_VIDEOS = os.getenv('DOWNLOAD_MISSING_VIDEOS', 'false').lower() in ('true', '1', 't')
 
+# Where to store uploaded/downloaded files
+DATA_DIRECTORY = os.getenv('DATA_DIRECTORY', '.')
+
 if DEBUG:
     logging.basicConfig(format='%(name)s\t%(asctime)-15s %(message)s', level=logging.DEBUG)
 else:

@@ -37,6 +37,7 @@ pika-stubs==0.1.3
 rabbitpy==2.0.1
 
 # ClassTranscribe python deps
+# FIXME: pin to particular versions
 grpcio-tools
 jupyter
 scenedetect[opencv,progress_bar]

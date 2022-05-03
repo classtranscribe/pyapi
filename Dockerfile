@@ -1,18 +1,22 @@
-FROM python:3
+FROM python:3-slim
 
 # Install OS dependencies
 RUN apt-get -qq update && \
-    apt-get -qq install netcat curl git wget python3 python3-pip python3-dev vim nano ffmpeg gcc g++ make libsm6 libxext6 libxrender-dev
+    apt-get -qq install --no-install-recommends netcat curl git wget ffmpeg build-essential libsm6 libxext6 libxrender-dev automake libtool pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev && \
+    apt-get -qq clean autoclean && \
+    apt-get -qq autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
 # Build stuff for tesseract
 # Based on https://medium.com/quantrium-tech/installing-tesseract-4-on-ubuntu-18-04-b6fcd0cbd78f
-RUN apt-get install -y automake pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev
-RUN  curl -L  https://github.com/tesseract-ocr/tesseract/archive/refs/tags/4.1.1.tar.gz  | tar xvz
+RUN curl -L https://github.com/tesseract-ocr/tesseract/archive/refs/tags/4.1.1.tar.gz | tar xvz
+
+ARG MAX_THREADS=""
 
 WORKDIR /tesseract-4.1.1
-RUN ./autogen.sh && ./configure && make -j && make install && ldconfig
+RUN ./autogen.sh && ./configure && make -j ${MAX_THREADS} && make -j ${MAX_THREADS} install && ldconfig
 # Slow! The above line takes 435 seconds on my laptop
-RUN make training && make training-install
+RUN make -j ${MAX_THREADS} training && make -j ${MAX_THREADS} training-install
 # The above line takes 59 seconds on my laptop
 
 RUN curl -L -o tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
@@ -25,8 +29,9 @@ ENV OMP_THREAD_LIMIT=1
 # Install Python dependencies
 WORKDIR /usr/app
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Additional dependencies for brown corpus/stopwords
 RUN python -m nltk.downloader brown stopwords
 
 # Copy in Python source
