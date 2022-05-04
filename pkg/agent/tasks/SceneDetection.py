@@ -44,11 +44,10 @@ class SceneDetection(AbstractTask):
             scenes = scenedetector.find_scenes(video_path=file_path)
 
             # save found scenes to video in api
+            self.logger.debug(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
             if readonly:
-                self.logger.info(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
                 self.logger.info(' [%s] SceneDetection running as READONLY.. scenes have not been saved' % (video_id))
             else:
-                self.logger.debug(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
                 resp = requests.post(url='%s/api/Task/UpdateSceneData?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps({"Scenes": scenes}))
@@ -83,11 +82,10 @@ class SceneDetection(AbstractTask):
             phrase_hints = phrasehinter.to_phrase_hints(raw_phrases=all_phrases)
             video[VIDEO_PHRASEHINTS_KEY] = phrase_hints
 
+            self.logger.info(' [%s] SceneDetection generated phrase hints: %s' % (video_id, phrase_hints))
             if readonly:
-                self.logger.info(' [%s] SceneDetection generated phrase hints: %s' % (video_id, phrase_hints))
                 self.logger.info(' [%s] SceneDetection running as READONLY.. scenes have not been saved: %s' % (video_id, scenes))
             else:
-                self.logger.debug(' [%s] SceneDetection generated phrase_hints: %s' % (video_id, phrase_hints))
                 # save generated phrase_hints to video in api
                 resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
                                      headers={'Authorization': 'Bearer %s' % self.jwt},
@@ -145,6 +143,7 @@ class SceneDetection(AbstractTask):
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
         self.logger.info(' [%s] SceneDetection now triggering: PhraseHinter' % video_id)
+        #body['Scenes'] = scenes  # json.dumps(scenes)
         emitter.publish(routing_key='PhraseHinter', body=body)
 
         return

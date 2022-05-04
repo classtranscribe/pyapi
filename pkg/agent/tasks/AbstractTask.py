@@ -30,19 +30,14 @@ class AbstractTask(ABC):
         pass
 
     def __init__(self):
-        self.logger = logging.getLogger("pkg.agent.tasks.%s" % self.get_name())
+        self.logger = logging.getLogger("agent.listener.%s" % self.get_name())
 
         # TODO: fetch service account jwt (from config / env?)
         self.target_host = TARGET_HOST
         self.jwt = TARGET_HOST_JWT
 
     def rabbitpy_callback(self, message, emitter):
-        #try:
-            body = message.json()
-            self.run_timed_task(body=body, emitter=emitter)
-            #message.ack()
-        #except Exception as e:
-        #    self.logger.error(" [x] Failed running %s: %s" % (self.get_name(), str(e)))
+        self.run_timed_task(body=message.json(), emitter=emitter)
 
     @abstractmethod
     def run_task(self, body, emitter):
@@ -52,7 +47,7 @@ class AbstractTask(ABC):
         start_time = time.time_ns() / 1000000
         self.logger.debug(" [✓] Running %s: %s" % (self.get_name(), str(body)))
         self.run_task(body=body, emitter=emitter)
-        self.logger.debug(" [✓] Done")
+        self.logger.info(" [✓] Done")
         end_time = time.time_ns() / 1000000
         duration = end_time - start_time
         self.logger.debug(' [✓] %s completed in %d ms' % (self.get_name(), duration))

@@ -30,7 +30,7 @@ class PhraseHinter(AbstractTask):
     def generate_phrase_hints(self, video_id, video, scenes, readonly):
         # Gather raw phrases from scenes
         self.logger.info(' [%s] PhraseHinter gathering raw phrases...' % video_id)
-        all_phrases = [str(scene[SCENE_PHRASES_KEY]) for scene in scenes]
+        all_phrases = "\n".join([str(scene[SCENE_PHRASES_KEY]) for scene in scenes])
         # video[VIDEO_PHRASES_KEY] = all_phrases
         self.logger.debug(' [%s] PhraseHinter found phrases' % (video_id))
 
@@ -39,17 +39,16 @@ class PhraseHinter(AbstractTask):
         try:
             self.logger.info(' [%s] PhraseHinter generating phrase hints...' % video_id)
             phrase_hints = phrasehinter.to_phrase_hints(raw_phrases=all_phrases)
-            video[VIDEO_PHRASEHINTS_KEY] = phrase_hints
+            # video[VIDEO_PHRASEHINTS_KEY] = phrase_hints
 
+            self.logger.debug(' [%s] PhraseHinter generated phrase hints: %s' % (video_id, phrase_hints))
             if readonly:
-                self.logger.info(' [%s] PhraseHinter generated phrase hints: %s' % (video_id, phrase_hints))
-                self.logger.info(' [%s] PhraseHinter running as READONLY.. scenes have not been saved: %s' % (video_id, scenes))
+                self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase hints have not been saved: %s' % (video_id, phrase_hints))
             else:
-                self.logger.debug(' [%s] PhraseHinter generated phrase_hints: %s' % (video_id, phrase_hints))
                 # save generated phrase_hints to video in api
                 resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
                                      headers={'Authorization': 'Bearer %s' % self.jwt},
-                                     data=phrase_hints)
+                                     data=json.dumps(phrase_hints))
                 resp.raise_for_status()
                 self.logger.debug(' [%s] PhraseHinter successfully saved phrase hints: %s' % (video_id, phrase_hints))
 
@@ -86,7 +85,11 @@ class PhraseHinter(AbstractTask):
 
         # TODO: Check for empty scenes / error-handling
         scenes = video[VIDEO_SCENEDATA_KEY]['Scenes']
-        self.logger.info("Scenes fetched: %s" % scenes)
+        # scenes = json.loads(body.get('Scenes', '[]'))
+        if len(scenes) == 0:
+            self.logger.error(' [%s] PhraseHinter FAILED for videoId=%s: no scenes found' % (video_id, video_id))
+
+        self.logger.debug("Scenes fetched: %s" % scenes)
         phrases = self.generate_phrase_hints(video_id, video, scenes, readonly)
 
         if video is None:
@@ -97,7 +100,7 @@ class PhraseHinter(AbstractTask):
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
         self.logger.info(' [%s] PhraseHinter now triggering: TranscriptionTask' % video_id)
-        emitter.publish(routing_key='TranscriptionTask', body=body)
+        #emitter.publish(routing_key='TranscriptionTask', body=body)
 
         return
 

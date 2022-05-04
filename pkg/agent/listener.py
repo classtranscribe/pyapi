@@ -51,7 +51,7 @@ class RabbitMqListener(RabbitMqEmitter):
     def process_messages(self, queue, callback):
         # Consume the message
         for message in queue:
-            message.pprint(True)
+            # message.pprint(True)
             try:
                 callback(message=message, emitter=self)
                 message.ack()
@@ -60,7 +60,7 @@ class RabbitMqListener(RabbitMqEmitter):
                 #message.nack(requeue=True)
                 #self.failure_counter += 1
                 self.logger.error(" [⚠] Failed to consume message: %s" % str(e))
-                #message.nack(requeue=False)
+                message.nack(requeue=False)
                 #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d)" % (self.failure_counter, MAX_FAILURES))
                 #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d): %s" % (self.failure_counter, MAX_FAILURES, e))
                 #if self.failure_counter >= MAX_FAILURES:

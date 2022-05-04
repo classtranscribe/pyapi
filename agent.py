@@ -14,12 +14,6 @@ if __name__ == '__main__':
     listener = RabbitMqListener(RABBITMQ_QUEUENAME)
 
     try:
-        body = {
-            'Data': '7fc3b0a5-ae81-4a46-b369-d3fb14eb0866',
-            # 'Data': 'db2090f7-09f2-459a-84b9-96bd2f506f68',
-            'TaskParameters': {'Force': True, 'Metadata': None, 'ReadOnly': True}
-        }
-        listener.publish(body=body, routing_key='SceneDetection')
         logging.info('Connecting to RabbitMQ: %s' % get_redacted_rmq_uri())
         listener.start_consuming()
         while True:

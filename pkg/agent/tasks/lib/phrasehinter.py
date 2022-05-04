@@ -1,6 +1,6 @@
 import re
 import os
-# import operator
+import operator
 import uuid
 import json
 
@@ -165,7 +165,7 @@ def require_minimum_occurence(transactions, min_support, abort_threshold=5000, m
     print(f"prefixspan.frequent(...) complete.  {int(end_time - start_time)}  seconds")
 
     # sort the frequent items by their frequency
-    sorted_pattern_count = ps.topk(pattern_count, closed=True)     # sorted(pattern_count, key=lambda pattern_count: pattern_count[0], reverse=True)
+    sorted_pattern_count = sorted(pattern_count, key=lambda pattern_count: pattern_count[0], reverse=True)
     all_patterns = [pattern[1] for pattern in sorted_pattern_count if len(pattern[1]) > 1]
     print("all_patterns complete")
 
@@ -218,7 +218,6 @@ def require_minimum_occurence(transactions, min_support, abort_threshold=5000, m
 
 
 def to_phrase_hints(raw_phrases):
-    # Remove duplicates
     #raw_phrases = list(set(raw_phrases))
 
     try:
@@ -228,9 +227,9 @@ def to_phrase_hints(raw_phrases):
         all_phrases = []  # [ ['The','cat'], ['A', 'dog'],['A', 'dog'],['A', 'dog'],...]
         all_words = []  # ['The', 'cat', 'A', 'dog'' ,'A' ,'dog'']
         # Unwanted punctuation
-        # p = re.compile(r"(\.|\?|,|:|;|'" + '|")')
-        p = re.compile(r"[?.,:;\'\"]")
-        for phrase in raw_phrases:  # e.g. data from scene['phrases']:
+        p = re.compile(r"(\.|\?|,|:|;|'" + '|")')
+        #p = re.compile(r"[?.,:;\'\"]")
+        for phrase in raw_phrases.split("\n"):  # e.g. data from scene['phrases']:
             words = p.sub(' ', phrase)
 
             words = [w for w in words.split(' ') if len(w) > 0]
