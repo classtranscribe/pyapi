@@ -62,44 +62,6 @@ class SceneDetection(AbstractTask):
                     video_id, file_path, str(e)))
             return None
 
-    def generate_phrase_hints(self, video_id, video, scenes, readonly):
-        # get file_path from video
-        # Note that because we're accessing the raw file, we're assuming that
-        # we're running on the same server and/or in the same file space
-        # TODO: process multiple videos?
-        file_path = self.get_file_path(video_id=video_id, video=video)
-
-        # Gather raw phrases from scenes
-        self.logger.info(' [%s] SceneDetection gathering raw phrases...' % video_id)
-        all_phrases = "\n".join([str(scene[SCENE_PHRASES_KEY]) for scene in scenes])
-        # video[VIDEO_PHRASES_KEY] = all_phrases
-        self.logger.debug(' [%s] SceneDetection found phrases' % (video_id))
-
-        # Pass raw phrases into phrasehinter.to_phrase_hints
-        # Note that this requires 'brown' and 'stopwords' dependencies from NTLK
-        try:
-            self.logger.info(' [%s] SceneDetection generating phrase hints...' % video_id)
-            phrase_hints = phrasehinter.to_phrase_hints(raw_phrases=all_phrases)
-            video[VIDEO_PHRASEHINTS_KEY] = phrase_hints
-
-            self.logger.info(' [%s] SceneDetection generated phrase hints: %s' % (video_id, phrase_hints))
-            if readonly:
-                self.logger.info(' [%s] SceneDetection running as READONLY.. scenes have not been saved: %s' % (video_id, scenes))
-            else:
-                # save generated phrase_hints to video in api
-                resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
-                                     headers={'Authorization': 'Bearer %s' % self.jwt},
-                                     data=phrase_hints)
-                resp.raise_for_status()
-                self.logger.debug(' [%s] SceneDetection successfully saved phrase hints: %s' % (video_id, phrase_hints))
-
-            return video
-        except Exception as e:
-            self.logger.error(
-                ' [%s] SceneDetection failed to detect scenes in videoId=%s: %s' % (
-                    video_id, file_path, str(e)))
-            return
-
     # Message Body Format:
     #     {'Data': 'db2090f7-09f2-459a-84b9-96bd2f506f68',
     #     'TaskParameters': {'Force': False, 'Metadata': None}}
@@ -133,7 +95,7 @@ class SceneDetection(AbstractTask):
             self.logger.warning(' [%s] Skipping SceneDetection: video file not found locally' % video_id)
             return
 
-        scenes = self.find_scenes(video_id, video, readonly)
+        self.find_scenes(video_id, video, readonly)
 
         if video is None:
             self.logger.error(' [%s] SceneDetection FAILED to lookup videoId=%s' % (video_id, video_id))
