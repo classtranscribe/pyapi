@@ -30,7 +30,7 @@ class PhraseHinter(AbstractTask):
     def generate_phrase_hints(self, video_id, video, scenes, readonly):
         # Gather raw phrases from scenes
         self.logger.info(' [%s] PhraseHinter gathering raw phrases...' % video_id)
-        all_phrases = "\n".join([str(scene[SCENE_PHRASES_KEY]) for scene in scenes])
+        all_phrases = [str(scene[SCENE_PHRASES_KEY]) for scene in scenes]
         # video[VIDEO_PHRASES_KEY] = all_phrases
         self.logger.debug(' [%s] PhraseHinter found phrases' % (video_id))
 

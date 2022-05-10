@@ -218,7 +218,8 @@ def require_minimum_occurence(transactions, min_support, abort_threshold=5000, m
 
 
 def to_phrase_hints(raw_phrases):
-    #raw_phrases = list(set(raw_phrases))
+    # remove initial duplicates (TODO: is this ok?)
+    raw_phrases = list(set(raw_phrases))
 
     try:
         print(f"to_phrase_hints starting. {len(raw_phrases)} raw_phrases")
@@ -227,9 +228,8 @@ def to_phrase_hints(raw_phrases):
         all_phrases = []  # [ ['The','cat'], ['A', 'dog'],['A', 'dog'],['A', 'dog'],...]
         all_words = []  # ['The', 'cat', 'A', 'dog'' ,'A' ,'dog'']
         # Unwanted punctuation
-        p = re.compile(r"(\.|\?|,|:|;|'" + '|")')
-        #p = re.compile(r"[?.,:;\'\"]")
-        for phrase in raw_phrases.split("\n"):  # e.g. data from scene['phrases']:
+        p = re.compile(r"[?.,:;\'\"]")
+        for phrase in raw_phrases:  # e.g. data from scene['phrases']:
             words = p.sub(' ', phrase)
 
             words = [w for w in words.split(' ') if len(w) > 0]
