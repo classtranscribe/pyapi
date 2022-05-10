@@ -513,23 +513,20 @@ def find_scenes(video_path):
 
     try:
 
+        # 1. (Multi subprocess?) Analyze scenes - create metrics for every sampled image from the video
         print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
         args = (video_path)
-        step1_result_queue = Queue()
-        p = multiprocessing.Process(target=enumerate_scene_candidates, args=(step1_result_queue, args,))
-        # 1. (Multi process?) Analyze scenes - create metrics for every sampled image from the video
-        #min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps, sim_structural, \
-        #    sim_structural_no_face, sim_ocr = enumerate_scene_candidates(video_path)
+        metrics_result_queue = Queue()
+        p = multiprocessing.Process(target=enumerate_scene_candidates, args=(metrics_result_queue, args,))
 
+        # run as subprocess and block until it completes
         p.start()
+        (min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps,
+            sim_structural, sim_structural_no_face, sim_ocr) = metrics_result_queue.get()
         p.join()
 
-        (min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps, sim_structural, \
-            sim_structural_no_face, sim_ocr) = step1_result_queue.get()
-
-        print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
-
         # 2. Calculate the combined similarities score
+        print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
         combined_similarities = calculate_score(
             sim_structural, sim_ocr, sim_structural_no_face)
 
@@ -557,15 +554,13 @@ def find_scenes(video_path):
         # 3. (Subprocess) Image Extraction and OCR
         print(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
         args = (video_path, timestamps, frame_cuts, everyN, start_time)
-        step3_result_queue = Queue()
-        p = multiprocessing.Process(target=extract_scene_information(), args=(step3_result_queue, args,))
-        #scenes = extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
+        scenes_result_queue = Queue()
+        p = multiprocessing.Process(target=extract_scene_information, args=(scenes_result_queue, args,))
 
-        # run as subprocess and block until complete
+        # run as subprocess and block until it completes
         p.start()
+        scenes = scenes_result_queue.get()
         p.join()
-
-        scenes = step3_result_queue.get()
 
         return scenes
 
