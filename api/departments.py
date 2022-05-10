@@ -72,11 +72,11 @@ def publish_test_message():
     body = {
         'Data': video_id,
         # 'Data': 'db2090f7-09f2-459a-84b9-96bd2f506f68',
-        'TaskParameters': {'Force': False, 'Metadata': None, 'ReadOnly': True}
+        'TaskParameters': {'Force': True, 'Metadata': None, 'ReadOnly': True}
     }
 
     try:
-        agent.publish(body=body, routing_key="PhraseHinter")
+        agent.publish(body=body, routing_key="SceneDetection")
     except Exception as e:
         logger.error("Failed to publish message: " + str(e))
 
