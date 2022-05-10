@@ -1,6 +1,10 @@
+import multiprocessing
 import os
 import math
 import json
+import subprocess
+from multiprocessing import Queue
+
 import numpy as np
 import pytesseract
 import pkg.agent.tasks.lib.titledetector as td
@@ -17,6 +21,11 @@ TARGET_FPS = float(os.getenv('SCENE_DETECT_FPS', 0.5))
 SCENE_DETECT_USE_FACE = os.getenv('SCENE_DETECT_USE_FACE', 'true') == 'true'
 SCENE_DETECT_USE_OCR = os.getenv('SCENE_DETECT_USE_OCR', 'true') == 'true'
 SCENE_DETECT_USE_EARLY_DROP = os.getenv('SCENE_DETECT_USE_EARLY_DROP', 'true') == 'true'
+
+# CONSTANTS
+OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
+ABS_MIN = 0.7  # Minimum combined_similarities value for non-scene changes, i.e. any frame with combined_similarities < ABS_MIN is defined as a scene change
+MIN_SCENE_LENGTH = 1  # Minimum scene length in seconds
 
 detector = MTCNN()
 
@@ -306,7 +315,7 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
     return timestamps, sim_structural, sim_structural_no_face, sim_ocr
 
 
-def extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time):
+def extract_scene_information(result_queue, args):
     """
     Extract useful features from each detected scenes and output scene images.
 
@@ -321,7 +330,7 @@ def extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_
     string: Features of detected scene as JSOH
     """
 
-    OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
+    (video_path, timestamps, frame_cuts, everyN, start_time) = args
 
     # we don't want the '.mp4' extension (if it exists)
     short_file_name = video_path[
@@ -411,9 +420,71 @@ def extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_
 
         del str_text
 
+    del vr_full
+
+    result_queue.put(scenes)
+
     return scenes
 
 
+def enumerate_scene_candidates(result_queue, args):
+    (video_path) = args
+
+    # Extract frames s1,e1,s2,e2,....
+    # e1 != s2 but s1 is roughly equal to m1
+    # s1 (m1) e1 s2 (m2) e2
+    start_time = perf_counter()
+    print(f"find_scenes({video_path}) starting...")
+    print(
+        f"SCENE_DETECT_USE_FACE={SCENE_DETECT_USE_FACE}, SCENE_DETECT_USE_OCR={SCENE_DETECT_USE_OCR}, TARGET_FPS={TARGET_FPS}")
+
+    # Check if the video file exsited
+
+    if os.path.exists(video_path):
+        print(f"{video_path}: Found file!")
+    else:
+        print(f"{video_path}: File not found -returning empty scene cuts ")
+        return json.dumps([])
+
+    # we don't want the '.mp4' extension (if it exists)
+    short_file_name = video_path[
+                      video_path.rfind('/') + 1: video_path.find('.')]
+
+    out_directory = os.path.join(DATA_DIR, 'frames', short_file_name)
+
+    # Get the video capture and number of frames and fps
+    cap = cv2.VideoCapture(video_path)
+    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = float(cap.get(cv2.CAP_PROP_FPS))
+
+    # Input FPS could be < targetFPS
+    everyN = max(1, int(fps / TARGET_FPS))
+    print(
+        f"find_scenes({video_path}): frames={num_frames}. fps={fps}. Sampling every {everyN} frame")
+
+    num_samples = num_frames // everyN
+
+    # Mininum number of frames per scene
+    min_samples_between_cut = max(0, int(MIN_SCENE_LENGTH * TARGET_FPS))
+
+    # Scene Analysis
+    timestamps, sim_structural, sim_structural_no_face, sim_ocr = generate_frame_similarity(video_path, num_samples,
+                                                                                            everyN, start_time)
+
+    t = perf_counter()
+    print(
+        f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
+
+    results = (min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
+    result_queue.put(results)
+
+    return results
+
+
+# Three sections:
+#   1. (Multi?) Subprocess: Analyze scenes - create metrics for every sampled image from the video
+#   2. Main process: Produce scene cut points - find scene start/end points
+#   3. Subprocess: Extract scene image / high-res OCR
 def find_scenes(video_path):
     """
     Detects scenes within a video.
@@ -438,59 +509,27 @@ def find_scenes(video_path):
         title (string): Detected title of the current scene
     """
 
-    # CONSTANTS
-    ABS_MIN = 0.7  # Minimum combined_similarities value for non-scene changes, i.e. any frame with combined_similarities < ABS_MIN is defined as a scene change
-    MIN_SCENE_LENGTH = 1  # Minimum scene length in seconds
-
     assert (os.path.exists(DATA_DIR))
 
-    # Extract frames s1,e1,s2,e2,....
-    # e1 != s2 but s1 is roughly equal to m1
-    # s1 (m1) e1 s2 (m2) e2
-
-    start_time = perf_counter()
-    print(f"find_scenes({video_path}) starting...")
-    print(
-        f"SCENE_DETECT_USE_FACE={SCENE_DETECT_USE_FACE}, SCENE_DETECT_USE_OCR={SCENE_DETECT_USE_OCR}, TARGET_FPS={TARGET_FPS}")
     try:
-        # Check if the video file exsited
 
-        if os.path.exists(video_path):
-            print(f"{video_path}: Found file!")
-        else:
-            print(f"{video_path}: File not found -returning empty scene cuts ")
-            return json.dumps([])
+        print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
+        args = (video_path)
+        step1_result_queue = Queue()
+        p = multiprocessing.Process(target=enumerate_scene_candidates, args=(step1_result_queue, args,))
+        # 1. (Multi process?) Analyze scenes - create metrics for every sampled image from the video
+        #min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps, sim_structural, \
+        #    sim_structural_no_face, sim_ocr = enumerate_scene_candidates(video_path)
 
-        # we don't want the '.mp4' extension (if it exists)
-        short_file_name = video_path[
-                          video_path.rfind('/') + 1: video_path.find('.')]
+        p.start()
+        p.join()
 
-        out_directory = os.path.join(DATA_DIR, 'frames', short_file_name)
+        (min_samples_between_cut, out_directory, num_samples, num_frames, everyN, start_time, timestamps, sim_structural, \
+            sim_structural_no_face, sim_ocr) = step1_result_queue.get()
 
-        # Get the video capture and number of frames and fps
-        cap = cv2.VideoCapture(video_path)
-        num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        fps = float(cap.get(cv2.CAP_PROP_FPS))
+        print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
 
-        # Input FPS could be < targetFPS
-        everyN = max(1, int(fps / TARGET_FPS))
-        print(
-            f"find_scenes({video_path}): frames={num_frames}. fps={fps}. Sampling every {everyN} frame")
-
-        num_samples = num_frames // everyN
-
-        # Mininum number of frames per scene
-        min_samples_between_cut = max(0, int(MIN_SCENE_LENGTH * TARGET_FPS))
-
-        # Scene Analysis
-        timestamps, sim_structural, sim_structural_no_face, sim_ocr = generate_frame_similarity(video_path, num_samples,
-                                                                                                everyN, start_time)
-
-        t = perf_counter()
-        print(
-            f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
-
-        # Calculate the combined similarities score
+        # 2. Calculate the combined similarities score
         combined_similarities = calculate_score(
             sim_structural, sim_ocr, sim_structural_no_face)
 
@@ -515,10 +554,20 @@ def find_scenes(video_path):
         # Now work in frames again. Make sure we are using regular ints (not numpy ints) other json serialization will fail
         frame_cuts = [int(s * everyN) for s in sample_cuts]
 
-        # Image Extraction and OCR
-        scenes = extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
+        # 3. (Subprocess) Image Extraction and OCR
+        print(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
+        args = (video_path, timestamps, frame_cuts, everyN, start_time)
+        step3_result_queue = Queue()
+        p = multiprocessing.Process(target=extract_scene_information(), args=(step3_result_queue, args,))
+        #scenes = extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
 
-        return json.dumps(scenes)
+        # run as subprocess and block until complete
+        p.start()
+        p.join()
+
+        scenes = step3_result_queue.get()
+
+        return scenes
 
     except Exception as e:
         print(f"find_scenes({video_path}) throwing Exception:" + str(e))
