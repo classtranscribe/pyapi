@@ -22,6 +22,11 @@ SCENE_DETECT_USE_FACE = os.getenv('SCENE_DETECT_USE_FACE', 'true') == 'true'
 SCENE_DETECT_USE_OCR = os.getenv('SCENE_DETECT_USE_OCR', 'true') == 'true'
 SCENE_DETECT_USE_EARLY_DROP = os.getenv('SCENE_DETECT_USE_EARLY_DROP', 'true') == 'true'
 
+# Threshold for max number of samples for scene candidate selection
+# sample_rate is determined by FPS, samples = frames / sample_rate
+# if samples exceeds our threshold, we artificially lower the sampling rate
+MAX_SAMPLES = os.getenv('SCENE_DETECT_MAX_SAMPLES', 3000)  # default ~ 100 minutes at 0.5 fps
+
 # CONSTANTS
 OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
 ABS_MIN = 0.7  # Minimum combined_similarities value for non-scene changes, i.e. any frame with combined_similarities < ABS_MIN is defined as a scene change
@@ -153,7 +158,7 @@ def compare_ocr_difference(word_dict_a, word_dict_b):
 
 def calculate_score(sim_structural, sim_ocr, sim_structural_no_face):
     """
-    Calculate the final similarties score between two frames.
+    Calculate the final similarities score between two frames.
 
     Parameters:
     sim_structural (list of float): List of similarities (SSIMs) between frames
@@ -163,6 +168,7 @@ def calculate_score(sim_structural, sim_ocr, sim_structural_no_face):
     Returns:
     list of float: List of combined_similarities between frames
     """
+    # NOTE: This will eventually use results from a support-vector machine
     return 0.3 * sim_structural + 0.3 * sim_structural_no_face + 0.4 * sim_ocr
 
 
@@ -455,14 +461,26 @@ def enumerate_scene_candidates(result_queue, args):
     # Get the video capture and number of frames and fps
     cap = cv2.VideoCapture(video_path)
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
     fps = float(cap.get(cv2.CAP_PROP_FPS))
 
     # Input FPS could be < targetFPS
     everyN = max(1, int(fps / TARGET_FPS))
-    print(
-        f"find_scenes({video_path}): frames={num_frames}. fps={fps}. Sampling every {everyN} frame")
 
     num_samples = num_frames // everyN
+
+    print(
+        f"find_scenes({video_path}): frames={num_frames}. fps={fps}. everyN={everyN}. samples={num_samples}.")
+
+    # examine num_samples < 3000 (tbd)? if so, lower sampling rate (TARGET_FPS?)
+    # probably ~3000 will be maximum in practice
+    if num_samples > MAX_SAMPLES:
+        print(
+            f" >>> WARNING: Sampling every {everyN} frame with {num_frames} frames would "
+            f"exceed maximum number of samples {MAX_SAMPLES}.")
+        everyN = int(math.ceil(num_frames / MAX_SAMPLES))
+        num_samples = num_frames // everyN
+        print(f" >>> WARNING: Using alternative sampling rate. everyN={everyN}. samples={num_samples}.")
 
     # Mininum number of frames per scene
     min_samples_between_cut = max(0, int(MIN_SCENE_LENGTH * TARGET_FPS))
@@ -529,6 +547,8 @@ def find_scenes(video_path):
         print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
         combined_similarities = calculate_score(
             sim_structural, sim_ocr, sim_structural_no_face)
+
+            # actual pixels/color differences, text/object differences, face/mouth differences
 
         # Find cuts by finding where combined similarities < ABS_MIN
         samples_cut_candidates = np.argwhere(
