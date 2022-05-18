@@ -14,6 +14,7 @@ class RabbitMqEmitter:
         self.logger = logging.getLogger('agent.emitter')
         self.connection = rabbitpy.Connection(url=RABBITMQ_URI)
         self.channel = self.connection.channel()
+        self.channel.prefetch_count(1)
         self.channel.enable_publisher_confirms()
         self.exchange = None
         self.init_queues()

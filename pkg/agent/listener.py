@@ -22,6 +22,7 @@ class RabbitMqListener(RabbitMqEmitter):
         # self.logger = logging.getLogger('agent.agent.rabbit.RabbitMqEmitter')
         self.connection = rabbitpy.Connection(url=RABBITMQ_URI)
         self.channel = self.connection.channel()
+        self.channel.prefetch_count(1)
         self.channel.enable_publisher_confirms()
         self.exchange = RABBITMQ_EXCHANGE
         self.queue_name = queue_name
@@ -69,8 +70,7 @@ class RabbitMqListener(RabbitMqEmitter):
     def stop_consuming(self):
         # Join thread, if it is active
         self.logger.debug(" [⚠] Stopping listening on queue: %s" % self.queue_name)
-        if self.is_consuming():
-            self.thread.join()
+        self.thread.join(timeout=10)
 
         # Wait for thread to die (or timeout)
         #while self.is_consuming():
