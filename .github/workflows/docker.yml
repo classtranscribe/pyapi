@@ -92,23 +92,24 @@ jobs:
           buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
           no_push: true
 
+      # TODO: need publish permissions for ghcr.io
       # this will publish to github container registry
-      - name: Publish to GitHub
-        if: github.event_name != 'pull_request' && github.repository == env.MAIN_REPO
-        uses: elgohr/Publish-Docker-Github-Action@2.22
-        env:
-          BRANCH: ${{ env.GITHUB_BRANCH }}
-          VERSION: ${{ env.VERSION }}
-          BUILDNUMBER: ${{ github.run_number }}
-          GITSHA1: ${{ github.sha  }}
-        with:
-          registry: ghcr.io
-          name: ${{ github.repository_owner }}/${{ matrix.IMAGE }}
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_PASSWORD }}
-          context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
-          buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
+      #- name: Publish to GitHub
+      #  if: github.event_name != 'pull_request' && github.repository == env.MAIN_REPO
+      #  uses: elgohr/Publish-Docker-Github-Action@2.22
+      #  env:
+      #    BRANCH: ${{ env.GITHUB_BRANCH }}
+      #    VERSION: ${{ env.VERSION }}
+      #    BUILDNUMBER: ${{ github.run_number }}
+      #    GITSHA1: ${{ github.sha  }}
+      #  with:
+      #    registry: ghcr.io
+      #    name: ${{ github.repository_owner }}/${{ matrix.IMAGE }}
+      #    username: ${{ secrets.GHCR_USERNAME }}
+      #    password: ${{ secrets.GHCR_PASSWORD }}
+      #    context: ${{ matrix.FOLDER }}
+      #    tags: "${{ env.TAGS }}"
+      #    buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
 
       # this will publish to dockerhub
       - name: Publish to Docker Hub
