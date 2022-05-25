@@ -2,7 +2,6 @@ import multiprocessing
 import os
 import math
 import json
-import subprocess
 from multiprocessing import Queue
 
 import numpy as np
