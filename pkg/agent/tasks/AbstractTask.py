@@ -1,3 +1,4 @@
+import tempfile
 from abc import ABC, abstractmethod
 from enum import Enum
 import logging
@@ -63,12 +64,17 @@ class AbstractTask(ABC):
             try:
                 with requests.get('%s%s' % (self.target_host, file_path), headers={'Referer': 'https://ct-dev.ncsa.illinois.edu'}, stream=True) as r:
                     r.raise_for_status()
-                    with open(full_path, 'wb') as f:
+
+                    with tempfile.TemporaryFile(mode='wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             # If you have chunk encoded response uncomment if
                             # and set chunk_size parameter to None.
                             # if chunk:
                             f.write(chunk)
+
+                    # when we've finished writing bytes to temp, rename the temp file
+                    os.rename(f.name, full_path)
+
                     return True
             except Exception as e:
                 self.logger.error(
