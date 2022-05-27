@@ -317,11 +317,21 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
     return timestamps, sim_structural, sim_structural_no_face, sim_ocr
 
 
-def enumerate_scene_candidates(result_queue, args):
+def _enumerate_scene_candidates(video_path, start_time):
+    """
+    Given a video path, parse the video file and look for possible location where scenes could be cut.
+
+    Parameters:
+    video_path (string): Video path
+    start_time (datetime): the time at which the task started (for reporting incremental performance or progress)
+
+    Returns:
+    string: Features of detected scenes
+    """
+
     # Extract frames s1,e1,s2,e2,....
     # e1 != s2 but s1 is roughly equal to m1
     # s1 (m1) e1 s2 (m2) e2
-    (video_path, start_time) = args
 
     print(f"find_scenes({video_path}) starting...")
     print(
@@ -370,22 +380,30 @@ def enumerate_scene_candidates(result_queue, args):
     print(
         f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
 
-    results = (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
-    result_queue.put(results)
-
-    return results
+    return (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
 
 
 class SimStructuralV1(SceneDetectionAlgorithm):
 
+    def enumerate_scene_candidates(self, video_path, start_time):
+        return self.run_as_subprocess(target=_enumerate_scene_candidates, args=(video_path, start_time))
+
     def find_scenes(self, video_path):
+        """
+        The main method of the SceneDetectionAlgorithm. Override this in your subclass.
+
+        Parameters:
+        video_path (string): Video path
+
+        Returns:
+        string: Features of detected scenes
+        """
         start_time = perf_counter()
 
         # 1. Enumerate candidates as subprocess and block until it completes
         print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
-        args = (video_path, start_time)
         (min_samples_between_cut, num_samples, num_frames, everyN, timestamps,
-            sim_structural, sim_structural_no_face, sim_ocr) = self.run_as_subprocess(target=enumerate_scene_candidates, args=args)
+            sim_structural, sim_structural_no_face, sim_ocr) = self.enumerate_scene_candidates(video_path, start_time)
 
         # 2. Calculate the combined similarities score
         print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
@@ -415,5 +433,7 @@ class SimStructuralV1(SceneDetectionAlgorithm):
         # Now work in frames again. Make sure we are using regular ints (not numpy ints) other json serialization will fail
         frame_cuts = [int(s * everyN) for s in sample_cuts]
 
-        # Finish up by calling
+        # Finish up by calling helper method to cut scenes and run OCR
+        print(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
         return self.extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
+

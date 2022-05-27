@@ -1,34 +1,46 @@
 from time import perf_counter
 
-import numpy as np
-
 from pkg.agent.tasks.lib.scenedetection.base import SceneDetectionAlgorithm
 
 
-# Write algorithm code up here
 
-class SimStructuralV1(SceneDetectionAlgorithm):
+
+# Write static code here
+
+
+
+
+class ExampleV1(SceneDetectionAlgorithm):
 
     def find_scenes(self, video_path):
-        # Record how long the task takes and return that at the end
+        """
+        The main method of the SceneDetectionAlgorithm. Override this in your subclass.
+
+        Parameters:
+        video_path (string): Video path
+
+        Returns:
+        string: Features of detected scenes
+        """
+        # This should return an array of scenes
+        scenes = []
+
         start_time = perf_counter()
 
-        self.logger.info('Given a video path, this method will parse the video to look for possible scene candidates.')
+        self.logger.info('Given a video path, this method will parse the video and build up a list of scenes.')
 
+        self.logger.info('To run a method as a subprocess (in case of resource leaks), '
+                         'you can use self.run_as_subprocess')
 
-        self.logger.info('To run as a subprocess (in case of memory leaks), you can use self.run_as_subprocess')
+        end_time = perf_counter()
+        self.logger.info('perf_counter() can be used to further measure incremental task duration: %d ms' %
+                         (end_time - start_time))
 
-        num_samples = 10
-        # vr_full = decord.VideoReader(video_path, ctx=decord.cpu(0))
+        # must return array of detected scenes at the end
+        return scenes
 
-        timestamps = np.zeros(num_samples)
-        everyN = 1
-
-        # Now work in frames again. Make sure we are using regular ints (not numpy ints) other json serialization will fail
-        frame_cuts = [int(s * everyN) for s in sample_cuts]
-
-        # must return an array of timestamps, array of frame cut points, the sampling period, and the start time
-        return timestamps, frame_cuts, everyN, start_time
+        # If desired, a helper method has been included to cut the scenes and run OCR:
+        # return self.extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
 
 
 

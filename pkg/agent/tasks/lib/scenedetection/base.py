@@ -22,19 +22,45 @@ class SceneDetectionAlgorithm(ABC):
     def __init__(self):
         self.logger = logging.getLogger('SceneDetectionAlgorithm')
 
-    # The main method of the SceneDetectionAlgorithm. Override this in your base class
-    # TODO: Must return `timestamps`, `frame_cuts`, and `everyN` as part of the results
     @abstractmethod
     def find_scenes(self, video_path):
+        """
+        The main method of the SceneDetectionAlgorithm. Override this in your subclass.
+
+        Parameters:
+        video_path (string): Video path
+
+        Returns:
+        string: Features of detected scenes
+        """
         pass
 
-    # Given a video path, return directory and filename (minus extension) as separate values
     def parse_dir_and_filename(self, video_path):
+        """
+        Given a video path, return directory and filename (minus extension) as separate values.
+
+        Parameters:
+        video_path (string): Video path
+
+        Returns:
+        directory (string): directory for the given path
+        short_file_name (string): the base filename for the given path (minus extension)
+        """
         short_file_name = os.path.basename(video_path)[:video_path.find('.')]
         directory = os.path.dirname(video_path)
         return directory, short_file_name
 
     def run_as_subprocess(self, target, args):
+        """
+        Run a method as a subprocess using a result queue to return items, wait for completion, and return the result.
+
+        Parameters:
+        target (Function): Function to call as a subprocess
+        args (list of object): Arguments to pass to the subprocess function
+
+        Returns:
+        anything: the return type of the target Function
+        """
         result_queue = Queue()
         p = Process(target=target, args=(result_queue, args,))
 
@@ -46,12 +72,8 @@ class SceneDetectionAlgorithm(ABC):
         return results
 
     def extract_scene_information(self, video_path, timestamps, frame_cuts, everyN, start_time):
-        args = (video_path, timestamps, frame_cuts, everyN, start_time)
-        return self.run_as_subprocess(target=self._extract_scene_information, args=args)
-
-    def _extract_scene_information(self, result_queue, args):
         """
-        Extract useful features from each detected scenes and output scene images.
+        Wrapper to extract useful features from each detected scenes and output scene images as a subprocess.
 
         Parameters:
         video_path (string): Video path
@@ -61,7 +83,21 @@ class SceneDetectionAlgorithm(ABC):
         start_time (list of float): Start time of the whole process
 
         Returns:
-        string: Features of detected scene as JSOH
+        string: Features of detected scenes
+        """
+        args = (video_path, timestamps, frame_cuts, everyN, start_time)
+        return self.run_as_subprocess(target=self._extract_scene_information, args=args)
+
+    def _extract_scene_information(self, result_queue, args):
+        """
+        Internal helper method to extract useful features from each detected scenes and output scene images.
+
+        Parameters:
+        video_path (string): Video path
+        timestamps (list of float): Timestamp array for sample frames
+
+        Returns:
+        string: Features of detected scenes
         """
         (video_path, timestamps, frame_cuts, everyN, start_time) = args
 

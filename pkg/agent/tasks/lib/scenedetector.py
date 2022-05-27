@@ -9,8 +9,8 @@ import importlib
 
 
 # Default to SimStructuralV1 implementation
-SCENE_DETECT_ALGORITHM_CLASS = os.getenv('SCENE_DETECT_ALGORITHM_CLASS', 'SimStructuralV1')
-SCENE_DETECT_ALGORITHM_MODULE = os.getenv('SCENE_DETECT_ALGORITHM_MODULE', 'pkg.agent.tasks.lib.scenedetection.sim_structural')
+SCENE_DETECT_ALGORITHM_CLASS = os.getenv('SCENE_DETECT_ALGORITHM_CLASS', 'ExampleV1')
+SCENE_DETECT_ALGORITHM_MODULE = os.getenv('SCENE_DETECT_ALGORITHM_MODULE', 'pkg.agent.tasks.lib.scenedetection.example')
 
 
 # Three sections:
