@@ -1,0 +1,28 @@
+version: "3.4"
+
+services:
+  api:
+    image: classtranscribe/ct-python
+    build:
+      context: ..
+    environment:
+      RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
+      RABBITMQ_EXCHANGE: ""
+      DATA_DIRECTORY: "/data"
+      DEBUG: "true"
+      DOWNLOAD_MISSING_VIDEOS: "true"
+      USE_SQLITE: 'true'
+    depends_on:
+      - rabbitmq
+    ports:
+      - 5000:5000
+    container_name: "pyapi"
+    command: ./entrypoint.sh server
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+    container_name: "rabbitmq"
+
+

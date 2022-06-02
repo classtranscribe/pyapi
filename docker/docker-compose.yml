@@ -1,101 +1,39 @@
-
-version: "3.9"
+version: "3.4"
 
 services:
-  postgres:
-    container_name: "ct-postgres"
-    image: "postgres"
-    env_file:
-      - postgres.env
-    networks:
-      - classtranscribe
-    volumes:
-      - "pgdata:/var/lib/postgres/pgdata"
-    restart: unless-stopped
-
-  rabbitmq:
-    container_name: "ct-rabbit"
-    image: "rabbitmq:management"
-    networks:
-      - classtranscribe
-    env_file:
-      - rabbitmq.env
-    restart: unless-stopped
-
-  api:
-    container_name: "ct-apiserver"
-    image: "classtranscribe/api"
-    depends_on:
-      - postgres
-      - rabbitmq
-    networks:
-      - classtranscribe
-    build:
-      context: ..
-    volumes:
-      - "../:/app"
-    ports:
-      - "0.0.0.0:5000:5000"
-    env_file:
-      - apiserver.env
-    restart: unless-stopped
-
-  queueawaker:
-    container_name: "ct-queueawaker"
-    image: "classtranscribe/taskagent"
-    depends_on:
-      - postgres
-      - rabbitmq
-      - api
-    networks:
-      - classtranscribe
-    build:
-      context: ..
-    env_file:
-      - apiserver.env
-    environment:
-      - RABBITMQ_QUEUENAME=QueueAwaker
-    restart: unless-stopped
 
   scenedetection:
-    container_name: "ct-scenedetection"
-    image: "classtranscribe/taskagent"
-    depends_on:
-      - postgres
-      - rabbitmq
-      - api
-    networks:
-      - classtranscribe
+    image: classtranscribe/ct-python
     build:
       context: ..
-    env_file:
-      - apiserver.env
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
     environment:
-      - RABBITMQ_QUEUENAME=SceneDetection
-    restart: unless-stopped
-
-  exampletask:
-    container_name: "ct-exampletask"
-    image: "classtranscribe/taskagent"
+      RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
+      RABBITMQ_EXCHANGE: ""
+      DEBUG: "true"
+      DATA_DIRECTORY: "/data"
+      DOWNLOAD_MISSING_VIDEOS: "true"
+      READONLY: "true"
+      RABBITMQ_QUEUENAME: 'SceneDetection'
+      SCENE_DETECT_ALGORITHM_CLASS: "SimStructuralV1"
+      SCENE_DETECT_ALGORITHM_MODULE: "pkg.agent.tasks.lib.scenedetection.sim_structural"
     depends_on:
-      - postgres
       - rabbitmq
-      - api
-    networks:
-      - classtranscribe
+
+  phrasehinter:
+    image: classtranscribe/ct-python
     build:
       context: ..
-    env_file:
-      - apiserver.env
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
     environment:
-      - RABBITMQ_QUEUENAME=ExampleTask
-    restart: unless-stopped
-
-
-
-
-networks:
-  classtranscribe:
-
-volumes:
-  pgdata:
+      RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
+      RABBITMQ_EXCHANGE: ""
+      DEBUG: "true"
+      DATA_DIRECTORY: "/data"
+      DOWNLOAD_MISSING_VIDEOS: "true"
+      RABBITMQ_QUEUENAME: 'PhraseHinter'
+      READONLY: "true"
+    depends_on:
+      - rabbitmq

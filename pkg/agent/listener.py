@@ -67,10 +67,10 @@ class RabbitMqListener(RabbitMqEmitter):
                 #if self.failure_counter >= MAX_FAILURES:
                 #    sys.exit(1)
 
-    def stop_consuming(self):
+    def stop_consuming(self, timeout=3):
         # Join thread, if it is active
         self.logger.debug(" [⚠] Stopping listening on queue: %s" % self.queue_name)
-        self.thread.join(timeout=10)
+        self.thread.join(timeout=timeout)
 
         # Wait for thread to die (or timeout)
         #while self.is_consuming():
