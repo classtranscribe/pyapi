@@ -27,16 +27,16 @@ class SceneDetection(AbstractTask):
         return TaskNames.SceneDetection
 
     @staticmethod
-    def get_file_path(video_id, video):
-        # return video['video1']['path']
-        return os.path.join(DATA_DIRECTORY, '%s.mp4' % video_id)
+    def get_file_path(video):
+        return video['video1']['path']
+        # legacy: return os.path.join(DATA_DIRECTORY, '%s.mp4' % video['video1']['id'])
 
     def find_scenes(self, video_id, video, readonly):
         # get file_path from video
         # Note that because we're accessing the raw file, we're assuming that
         # we're running on the same server and/or in the same file space
         # TODO: process multiple videos?
-        file_path = self.get_file_path(video_id=video_id, video=video)
+        file_path = self.get_file_path(video=video)
 
         # Call scenedetector.find_scenes, store scene data back in api
         try:
@@ -87,7 +87,7 @@ class SceneDetection(AbstractTask):
         # Note that because we're accessing the raw file, we're assuming that
         # we're running on the same server and/or in the same file space
         # TODO: process multiple videos?
-        file_path = self.get_file_path(video_id=video_id, video=video)
+        file_path = self.get_file_path(video=video)
 
         # Short-circuit if we can't find the file
         # fetch the file from server if not found (if DOWNLOAD_MISSING_VIDEOS=True)

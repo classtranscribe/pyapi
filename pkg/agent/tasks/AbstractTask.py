@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -54,26 +55,27 @@ class AbstractTask(ABC):
         self.logger.debug(' [✓] %s completed in %d ms' % (self.get_name(), duration))
 
     def ensure_file_exists(self, video_id, file_path):
-        full_path = os.path.join(config.DATA_DIRECTORY, file_path)
-
-        # file not found, attempt to fetch it
-        # FIXME: ct-dev returning 403 for remote requests (need to set Referrer header?)
-        if config.DOWNLOAD_MISSING_VIDEOS and not os.path.exists(full_path):
+        # file not found? attempt to fetch it
+        if config.DOWNLOAD_MISSING_VIDEOS and not os.path.exists(file_path):
             # fetch video file using static data path
-            self.logger.info(' [%s] SceneDetection downloading video data locally: %s' % (video_id, file_path))
+            self.logger.info(' [%s] SceneDetection attempting to download video data locally: %s' % (video_id, file_path))
             try:
                 with requests.get('%s%s' % (self.target_host, file_path), headers={'Referer': 'https://ct-dev.ncsa.illinois.edu'}, stream=True) as r:
                     r.raise_for_status()
+                    self.logger.info(' [%s] SceneDetection now downloading video data locally: %s' % (video_id, file_path))
 
-                    with tempfile.TemporaryFile(mode='wb') as f:
+                    with tempfile.NamedTemporaryFile(mode='wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             # If you have chunk encoded response uncomment if
                             # and set chunk_size parameter to None.
                             # if chunk:
                             f.write(chunk)
 
-                    # when we've finished writing bytes to temp, rename the temp file
-                    os.rename(f.name, full_path)
+                        # make sure destination directory exists
+                        os.makedirs(os.path.dirname(file_path))
+
+                        # when we've finished writing bytes to temp, rename and move to destination folder
+                        shutil.move(f.name, file_path)
 
                     return True
             except Exception as e:
@@ -81,7 +83,7 @@ class AbstractTask(ABC):
                     ' [%s] SceneDetection failed to fetch video when DOWNLOAD_MISSING_VIDEOS=True: %s' % (
                     video_id, str(e)))
                 return False
-        elif os.path.exists(full_path):
+        elif os.path.exists(file_path):
             self.logger.error(' [%s] SceneDetection using local video file (DOWNLOAD_MISSING_VIDEOS=False): %s' % (video_id, file_path))
             return True
 

@@ -317,7 +317,7 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
     return timestamps, sim_structural, sim_structural_no_face, sim_ocr
 
 
-def _enumerate_scene_candidates(video_path, start_time):
+def _enumerate_scene_candidates(result_queue, args):
     """
     Given a video path, parse the video file and look for possible location where scenes could be cut.
 
@@ -328,6 +328,7 @@ def _enumerate_scene_candidates(video_path, start_time):
     Returns:
     string: Features of detected scenes
     """
+    (video_path, start_time) = args
 
     # Extract frames s1,e1,s2,e2,....
     # e1 != s2 but s1 is roughly equal to m1
@@ -337,8 +338,7 @@ def _enumerate_scene_candidates(video_path, start_time):
     print(
         f"SCENE_DETECT_USE_FACE={SCENE_DETECT_USE_FACE}, SCENE_DETECT_USE_OCR={SCENE_DETECT_USE_OCR}, TARGET_FPS={TARGET_FPS}")
 
-    # Check if the video file exsited
-
+    # Check if the video file exists
     if os.path.exists(video_path):
         print(f"{video_path}: Found file!")
     else:
@@ -380,7 +380,10 @@ def _enumerate_scene_candidates(video_path, start_time):
     print(
         f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
 
-    return (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
+    result = (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
+    result_queue.put(result)
+
+    return result
 
 
 class SimStructuralV1(SceneDetectionAlgorithm):

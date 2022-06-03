@@ -10,7 +10,7 @@ while ! nc -z ${RABBIT_HOST} ${RABBIT_PORT}; do echo Waiting for RabbitMQ: ${RAB
 
 # Then run the API server
 # FIXME: replace with case statement (for default or override, e.g. bash)
-if [ "$1" = "agent" ];
+if [[ "$1" == "server" ]];
 then
   python ./server.py
 else
