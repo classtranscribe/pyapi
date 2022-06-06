@@ -154,7 +154,7 @@ class SceneDetectionAlgorithm(ABC):
             last_block = -1
             phrase = []
             for i in range(len(str_text['conf'])):
-                if int(str_text['conf'][i]) >= OCR_CONFIDENCE and len(str_text['text'][i].strip()) > 0:
+                if int(float(str_text['conf'][i])) >= OCR_CONFIDENCE and len(str_text['text'][i].strip()) > 0:
                     curr_block = str_text['block_num'][i]
                     if curr_block != last_block:
                         if len(phrase) > 0:

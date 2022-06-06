@@ -131,7 +131,7 @@ def title_detection(text_data, height, width):
     
     # Extract OCR outputs
     for i in range(len(text_data['conf'])):
-        if int(text_data['conf'][i]) >= OCR_CONFIDENCE and len(text_data['text'][i].strip()) > 0:
+        if int(float(text_data['conf'][i])) >= OCR_CONFIDENCE and len(text_data['text'][i].strip()) > 0:
             scaled_height = scale_by_text_height(text=text_data['text'][i], original_height=text_data['height'][i])
             
             words.append(text_data['text'][i])
