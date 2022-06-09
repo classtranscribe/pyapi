@@ -283,7 +283,7 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
 
                 phrases = Counter()
                 for j in range(len(str_text['conf'])):
-                    if int(str_text['conf'][j]) >= SIM_OCR_CONFIDENCE and len(str_text['text'][j].strip()) > 0:
+                    if int(float(str_text['conf'][j])) >= SIM_OCR_CONFIDENCE and len(str_text['text'][j].strip()) > 0:
                         phrases[str_text['text'][j]
                         ] += (float(str_text['conf'][j]) / 100)
 
