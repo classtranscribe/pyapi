@@ -7,6 +7,7 @@ import sys
 
 import importlib
 
+logger = logging.getLogger('pkg.agent.tasks.scenedetector')
 
 # Default to SimStructuralV1 implementation
 SCENE_DETECT_ALGORITHM_CLASS = os.getenv('SCENE_DETECT_ALGORITHM_CLASS', 'ExampleV1')
@@ -51,7 +52,7 @@ def find_scenes(video_path):
         scene_detection_algorithm = SceneDetectionAlgorithm_()
         return scene_detection_algorithm.find_scenes(video_path)
     except Exception as e:
-        print(f"find_scenes({video_path}) throwing Exception:" + str(e))
-        print('Failed to lookup SceneDetection Algorithm: %s.%s' % (
+        logger.error(f"find_scenes({video_path}) throwing Exception:" + str(e))
+        logger.error('Failed to lookup SceneDetection Algorithm: %s.%s' % (
             SCENE_DETECT_ALGORITHM_MODULE, SCENE_DETECT_ALGORITHM_CLASS))
         raise e

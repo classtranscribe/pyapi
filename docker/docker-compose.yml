@@ -9,10 +9,10 @@ services:
     volumes:
       - "${DATA:-~/docker_data}/data:/data"
     environment:
+      PYTHONUNBUFFERED: "1"
       RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
       RABBITMQ_EXCHANGE: ""
       DEBUG: "true"
-      DATA_DIRECTORY: "/data"
       DOWNLOAD_MISSING_VIDEOS: "true"
       READONLY: "true"
       RABBITMQ_QUEUENAME: 'SceneDetection'
@@ -28,10 +28,10 @@ services:
     volumes:
       - "${DATA:-~/docker_data}/data:/data"
     environment:
+      PYTHONUNBUFFERED: "1"
       RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
       RABBITMQ_EXCHANGE: ""
       DEBUG: "true"
-      DATA_DIRECTORY: "/data"
       DOWNLOAD_MISSING_VIDEOS: "true"
       RABBITMQ_QUEUENAME: 'PhraseHinter'
       READONLY: "true"
