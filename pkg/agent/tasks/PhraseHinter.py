@@ -1,18 +1,10 @@
-import base64
 import json
-import os
-import pprint
-
 import requests
 
 from .AbstractTask import AbstractTask, TaskNames
 
-from pkg.agent.tasks.lib import scenedetector, phrasehinter
-from config import DATA_DIRECTORY
+from pkg.agent.tasks.lib import phrasehinter
 
-# from client import client
-
-import config
 
 VIDEO_SCENEDATA_KEY = 'sceneData'
 
@@ -50,7 +42,7 @@ class PhraseHinter(AbstractTask):
                                      headers={'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps(phrase_hints))
                 resp.raise_for_status()
-                self.logger.debug(' [%s] PhraseHinter successfully saved phrase hints: %s' % (video_id, phrase_hints))
+                #self.logger.debug(' [%s] PhraseHinter successfully saved phrase hints: %s' % (video_id, phrase_hints))
 
             return video
         except Exception as e:
@@ -73,7 +65,7 @@ class PhraseHinter(AbstractTask):
         # fetch video metadata by id to get path
         video = self.get_video(video_id=video_id)
 
-        # short-circuit if we already have scene data
+        # short-circuit if we already have phrase hints
         if not force and VIDEO_PHRASEHINTS_KEY in video and video[VIDEO_PHRASEHINTS_KEY]:
             # TODO: trigger TranscriptionTask
             self.logger.warning(' [%s] Skipping PhraseHinter: phraseHints already exist' % video_id)
@@ -89,7 +81,7 @@ class PhraseHinter(AbstractTask):
         if len(scenes) == 0:
             self.logger.error(' [%s] PhraseHinter FAILED for videoId=%s: no scenes found' % (video_id, video_id))
 
-        self.logger.debug("Scenes fetched: %s" % scenes)
+        #self.logger.debug("Scenes fetched: %s" % scenes)
         phrases = self.generate_phrase_hints(video_id, video, scenes, readonly)
 
         if video is None:

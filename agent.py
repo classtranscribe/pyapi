@@ -13,6 +13,10 @@ if RABBITMQ_QUEUENAME is None or RABBITMQ_QUEUENAME == '':
 if __name__ == '__main__':
     listener = RabbitMqListener(RABBITMQ_QUEUENAME)
 
+    #{
+    #    "Data": "414d71cb-808a-47c0-be3b-b7d6f47710fc",
+    #    "TaskParameters": {"Force": true, "Metadata": null, "ReadOnly": false}
+    #}
     try:
         logging.info('Connecting to RabbitMQ: %s' % get_redacted_rmq_uri())
         listener.start_consuming()

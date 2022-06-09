@@ -6,6 +6,7 @@ services:
     build:
       context: ..
     environment:
+      PYTHONUNBUFFERED: "1"
       RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
       RABBITMQ_EXCHANGE: ""
       DATA_DIRECTORY: "/data"

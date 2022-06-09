@@ -1,5 +1,6 @@
 from pkg.agent.tasks.lib.scenedetection.base import SceneDetectionAlgorithm
 
+import logging
 
 
 import math
@@ -15,6 +16,8 @@ from skimage.metrics import structural_similarity as ssim
 from collections import Counter
 
 from mtcnn_cv2 import MTCNN
+
+logger = logging.getLogger('pkg.agent.tasks.lib.scenedetection.sim_structural.v1')
 
 TARGET_FPS = float(os.getenv('SCENE_DETECT_FPS', 0.5))
 SCENE_DETECT_USE_FACE = os.getenv('SCENE_DETECT_USE_FACE', 'true') == 'true'
@@ -227,7 +230,7 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
 
         t = perf_counter()
         if t >= last_log_time + 30:
-            print(
+            logger.info(
                 f"find_scenes({video_path}): {i}/{num_samples}. Elapsed {int(t - start_time)} s")
             last_log_time = t
 
@@ -334,15 +337,15 @@ def _enumerate_scene_candidates(result_queue, args):
     # e1 != s2 but s1 is roughly equal to m1
     # s1 (m1) e1 s2 (m2) e2
 
-    print(f"find_scenes({video_path}) starting...")
-    print(
+    logger.info(f"find_scenes({video_path}) starting...")
+    logger.info(
         f"SCENE_DETECT_USE_FACE={SCENE_DETECT_USE_FACE}, SCENE_DETECT_USE_OCR={SCENE_DETECT_USE_OCR}, TARGET_FPS={TARGET_FPS}")
 
     # Check if the video file exists
     if os.path.exists(video_path):
-        print(f"{video_path}: Found file!")
+        logger.info(f"{video_path}: Found file!")
     else:
-        print(f"{video_path}: File not found -returning empty scene cuts ")
+        logger.warning(f"{video_path}: File not found -returning empty scene cuts ")
         return json.dumps([])
 
     # Get the video capture and number of frames and fps
@@ -356,18 +359,18 @@ def _enumerate_scene_candidates(result_queue, args):
 
     num_samples = num_frames // everyN
 
-    print(
+    logger.info(
         f"find_scenes({video_path}): frames={num_frames}. fps={fps}. everyN={everyN}. samples={num_samples}.")
 
     # examine num_samples < 3000 (tbd)? if so, lower sampling rate (TARGET_FPS?)
     # probably ~3000 will be maximum in practice
     if num_samples > MAX_SAMPLES:
-        print(
+        logger.warning(
             f" >>> WARNING: Sampling every {everyN} frame with {num_frames} frames would "
             f"exceed maximum number of samples {MAX_SAMPLES}.")
         everyN = int(math.ceil(num_frames / MAX_SAMPLES))
         num_samples = num_frames // everyN
-        print(f" >>> WARNING: Using alternative sampling rate. everyN={everyN}. samples={num_samples}.")
+        logger.warning(f" >>> WARNING: Using alternative sampling rate. everyN={everyN}. samples={num_samples}.")
 
     # Mininum number of frames per scene
     min_samples_between_cut = max(0, int(MIN_SCENE_LENGTH * TARGET_FPS))
@@ -377,7 +380,7 @@ def _enumerate_scene_candidates(result_queue, args):
                                                                                             everyN, start_time)
 
     t = perf_counter()
-    print(
+    logger.info(
         f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
 
     result = (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
@@ -404,12 +407,12 @@ class SimStructuralV1(SceneDetectionAlgorithm):
         start_time = perf_counter()
 
         # 1. Enumerate candidates as subprocess and block until it completes
-        print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
+        logger.info(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
         (min_samples_between_cut, num_samples, num_frames, everyN, timestamps,
             sim_structural, sim_structural_no_face, sim_ocr) = self.enumerate_scene_candidates(video_path, start_time)
 
         # 2. Calculate the combined similarities score
-        print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
+        logger.info(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
         combined_similarities = calculate_score(
             sim_structural, sim_ocr, sim_structural_no_face)
 
@@ -419,9 +422,9 @@ class SimStructuralV1(SceneDetectionAlgorithm):
         samples_cut_candidates = np.argwhere(
             combined_similarities < ABS_MIN).flatten()
 
-        print(f"{video_path}: {len(samples_cut_candidates)} candidates identified")
+        logger.info(f"{video_path}: {len(samples_cut_candidates)} candidates identified")
         if len(samples_cut_candidates) == 0:
-            print(f"{video_path}:Returning early - no scene cuts found")
+            logger.warning(f"{video_path}:Returning early - no scene cuts found")
             return json.dumps([])
 
         # Get real scene cuts by filtering out those that happen within min_frames of the last cut
@@ -437,6 +440,6 @@ class SimStructuralV1(SceneDetectionAlgorithm):
         frame_cuts = [int(s * everyN) for s in sample_cuts]
 
         # Finish up by calling helper method to cut scenes and run OCR
-        print(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
+        logger.info(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
         return self.extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
 

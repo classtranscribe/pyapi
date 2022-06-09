@@ -1,23 +1,13 @@
-import base64
 import json
-import os
 
 import requests
 
 from .AbstractTask import AbstractTask, TaskNames
 
-from pkg.agent.tasks.lib import scenedetector, phrasehinter
-from config import DATA_DIRECTORY
+from pkg.agent.tasks.lib import scenedetector
 
-# from client import client
-
-import config
 
 VIDEO_SCENEDATA_KEY = 'sceneData'
-
-VIDEO_PHRASEHINTS_KEY = 'phrase_hints'
-VIDEO_PHRASES_KEY = 'all_phrases'
-SCENE_PHRASES_KEY = 'phrases'
 
 
 class SceneDetection(AbstractTask):
@@ -44,7 +34,7 @@ class SceneDetection(AbstractTask):
             scenes = scenedetector.find_scenes(video_path=file_path)
 
             # save found scenes to video in api
-            self.logger.debug(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
+            #self.logger.debug(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
             if readonly:
                 self.logger.info(' [%s] SceneDetection running as READONLY.. scenes have not been saved' % (video_id))
             else:
@@ -53,7 +43,7 @@ class SceneDetection(AbstractTask):
                                      data=json.dumps({"Scenes": scenes}))
 
                 resp.raise_for_status()
-                self.logger.debug(' [%s] SceneDetection successfully saved scenes: %s' % (video_id, scenes))
+                #self.logger.debug(' [%s] SceneDetection successfully saved scenes: %s' % (video_id, scenes))
 
             return scenes
         except Exception as e:
