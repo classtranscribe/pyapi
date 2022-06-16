@@ -1,4 +1,5 @@
 import json
+import os
 import requests
 
 from .AbstractTask import AbstractTask, TaskNames
@@ -11,7 +12,6 @@ VIDEO_SCENEDATA_KEY = 'sceneData'
 VIDEO_PHRASEHINTS_KEY = 'phrase_hints'
 VIDEO_PHRASES_KEY = 'all_phrases'
 SCENE_PHRASES_KEY = 'phrases'
-
 
 class PhraseHinter(AbstractTask):
 
@@ -33,9 +33,9 @@ class PhraseHinter(AbstractTask):
             phrase_hints = phrasehinter.to_phrase_hints(raw_phrases=all_phrases)
             # video[VIDEO_PHRASEHINTS_KEY] = phrase_hints
 
-            self.logger.debug(' [%s] PhraseHinter generated phrase hints: %s' % (video_id, phrase_hints))
+            #self.logger.debug(' [%s] PhraseHinter generated phrase hints: %s' % (video_id, phrase_hints))
             if readonly:
-                self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase hints have not been saved: %s' % (video_id, phrase_hints))
+                self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase hints have not been saved: %s' % (video_id, phrase_hints.join('')))
             else:
                 # save generated phrase_hints to video in api
                 resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
@@ -59,7 +59,7 @@ class PhraseHinter(AbstractTask):
         video_id = body['Data']
         parameters = body.get('TaskParameters', {})
         force = parameters.get('Force', False)
-        readonly = parameters.get('ReadOnly', True)
+        readonly = parameters.get('ReadOnly', False)
         self.logger.info(' [%s] PhraseHinter started on videoId=%s...' % (video_id, video_id))
 
         # fetch video metadata by id to get path

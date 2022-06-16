@@ -5,7 +5,7 @@ import rabbitpy
 import threading
 import time
 
-from config import RABBITMQ_URI, RABBITMQ_EXCHANGE
+from config import RABBITMQ_URI, RABBITMQ_EXCHANGE, REQUEUE_TIMEOUT
 
 from pkg.agent.emitter import RabbitMqEmitter
 from pkg.agent.constants import RABBITMQ_CALLBACKS
@@ -60,8 +60,10 @@ class RabbitMqListener(RabbitMqEmitter):
             except Exception as e:
                 #message.nack(requeue=True)
                 #self.failure_counter += 1
-                self.logger.error(" [⚠] Failed to consume message: %s" % str(e))
-                message.nack(requeue=False)
+                self.logger.error(f" [⚠] Failed to consume message, requeuing in {REQUEUE_TIMEOUT}: {str(e)}")
+                time.sleep(5)
+                message.nack(requeue=True)
+
                 #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d)" % (self.failure_counter, MAX_FAILURES))
                 #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d): %s" % (self.failure_counter, MAX_FAILURES, e))
                 #if self.failure_counter >= MAX_FAILURES:

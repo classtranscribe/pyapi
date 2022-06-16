@@ -1,10 +1,12 @@
 import re
 import os
 import operator
+import string
 import uuid
 import json
 import logging
 
+from functools import reduce
 from time import perf_counter
 from string import ascii_letters, digits
 from collections import Counter, defaultdict
@@ -39,7 +41,10 @@ def delete_inplace_unwanted_characters(wordCountDict):
 
     # Use list() to create a copy of the keys so we can iterate while deleting
     for key in list(wordCountDict):
-        if set(key).difference(allowed):
+        # skip words containing invalid characters
+        if not str.isalnum(key):
+            wordCountDict.pop(key)
+        elif set(key).difference(allowed):
             wordCountDict.pop(key)
 
 
@@ -138,15 +143,44 @@ def filter_common_corpus_words(words_count, scale_factor=300):
     return result
 
 
-def require_minimum_occurence(transactions, min_support, abort_threshold=5000, maximum_phrase=500):
+def require_minimum_occurence(rawtransactions, min_support, abort_threshold=5000, maximum_phrase=500):
     """
     A function that extracts the mximal frequent sequential patterns from the raw string
     """
-    logger.info(f"require_minimum_occurence() starting. {len(transactions)} transactions")
+    logger.info(f"require_minimum_occurence() starting. {len(rawtransactions)} transactions")
     # generate frequent sequential patterns through PrefixSpan library
-    if len(transactions) > abort_threshold:  # Return an empty result If N is too large
+    if len(rawtransactions) > abort_threshold:  # Return an empty result If N is too large
         logger.info("Too many transactions; returning empty list")
         return []
+
+    transactions = []
+
+    # The purpose of the prefix scan is to identify interesting phrases for the speech to text recognition; (the other corpus code adds single unusual words).
+    # Testing found that if the output sequence has no upper bound set then the default bound (1000) can take much more than 6 hours to calculate
+    #
+    # New Configuration
+    # Drop numbers e.g. '00' but words with numbers e.g. 'k0' are okay
+    require_one_roman_letter = True
+    # Drop repetition of the same word e.g. 'sep','sep','sep','sep'
+    filter_repetition = True
+    # Min and Max number of words in each output sequence
+    max_output_sequence = 2
+    min_output_sequence = 2
+
+    regex = re.compile(r'[a-zA-Z]+', flags=0)
+    for words in rawtransactions:
+        if require_one_roman_letter:
+            words = [w for w in words if regex.match(w)]
+
+        if filter_repetition and len(words) > 1:
+            words = words[0:1] + [w2 for w1, w2 in zip(words[:-1], words[1:]) if w1 != w2]
+
+        if len(words) > 0:
+            transactions.append(words)
+    logger.info(
+        f"Total number of tokens after filtering (oneromanletter={require_one_roman_letter}, filter_repetition={filter_repetition}): {reduce(lambda subtotal, list: subtotal + len(list), transactions, 0)}")
+
+    min_support = 2
 
     # Determine prefix span
     # see https://pypi.org/project/prefixspan/
@@ -160,12 +194,27 @@ def require_minimum_occurence(transactions, min_support, abort_threshold=5000, m
     ps = PrefixSpan(transactions)
     end_time = perf_counter()
     logger.info(f"PrefixSpan complete. {int(end_time - start_time)} seconds")
+    ps.maxlen = max_output_sequence #NEW
+    ps.minlen = min_output_sequence #NEW
 
     logger.info("prefixspan.frequent(...) starting")
     start_time = perf_counter()
     pattern_count = ps.frequent(min_support, closed=True)
     end_time = perf_counter()
     logger.info(f"prefixspan.frequent(...) complete.  {int(end_time - start_time)}  seconds")
+
+
+    # NEW
+    logger.info(
+        f"{len(pattern_count)} patterns. Total words: {reduce(lambda subtotal, list: subtotal + len(list[1]), pattern_count, 0)}")
+
+    # NEW
+    # Discard repetitious entries ( why do these exist - I assume they are an artifact of an early exit due to hitting max length)
+    pattern_count = [entry for entry in pattern_count if len(entry[1]) == len(set(entry[1]))]
+
+    # NEW
+    logger.info(
+        f"{len(pattern_count)} patterns. Total words after filter: {reduce(lambda subtotal, list: subtotal + len(list[1]), pattern_count, 0)}")
 
     # sort the frequent items by their frequency
     sorted_pattern_count = sorted(pattern_count, key=lambda pattern_count: pattern_count[0], reverse=True)
@@ -182,12 +231,12 @@ def require_minimum_occurence(transactions, min_support, abort_threshold=5000, m
         if len(pattern[1]) == 1:
             frequent_once_phrases.update({pattern[1][0]: pattern[0]})
 
-    logger.info("frequent_once_phrases_length", len(frequent_once_phrases))
+    logger.info(f"frequent_once_phrases_length: {len(frequent_once_phrases)}")
     # print("frequent_once_phrases", frequent_once_phrases)
 
     filtered_once_phrase = filter_common_corpus_words(frequent_once_phrases, scale_factor=100)
 
-    logger.info("filtered_once_phrase_length", len(filtered_once_phrase))
+    logger.info(f"filtered_once_phrase_length: {len(filtered_once_phrase)}")
     # print("filtered_once_phrase", filtered_once_phrase)
 
     nonstop_filtered_once_phrase = filter_stop_words(filtered_once_phrase)
@@ -231,7 +280,8 @@ def to_phrase_hints(raw_phrases):
         all_phrases = []  # [ ['The','cat'], ['A', 'dog'],['A', 'dog'],['A', 'dog'],...]
         all_words = []  # ['The', 'cat', 'A', 'dog'' ,'A' ,'dog'']
         # Unwanted punctuation
-        p = re.compile(r"[?.,:;\'\"]")
+        #p = re.compile(r"[\[?.,:;\'\"|]")
+        p = re.compile("[" + re.escape(string.punctuation) + "]")
         for phrase in raw_phrases:  # e.g. data from scene['phrases']:
             words = p.sub(' ', phrase)
 
@@ -241,6 +291,11 @@ def to_phrase_hints(raw_phrases):
             for i in range(len(words)):
                 # word_origin = WordNetLemmatizer().lemmatize(words[i].lower(),'v')
                 word_origin = words[i].lower()
+
+                # skip words containing invalid characters
+                if not str.isalnum(word_origin):
+                    continue
+
                 if word_origin != words[i]:
                     if word_origin not in canon_map.keys():
                         canon_map.update({word_origin: Counter()})
@@ -258,7 +313,7 @@ def to_phrase_hints(raw_phrases):
         logger.info("canon_map constructed")
 
         words_count = dict(Counter(all_words))
-        logger.debug('canon_map', canon_map)
+        logger.info('canon_map: %s' % json.dumps(canon_map))
 
         delete_inplace_unwanted_characters(words_count)
 
@@ -291,8 +346,8 @@ def to_phrase_hints(raw_phrases):
         # Remove all single character phrase
         result = [phrase for phrase in result if len(phrase) > 1]
 
-        logger.info('final_length', len(result))
-        logger.debug('result', result)
+        logger.info(f"final_length: {len(result)}")
+        #logger.debug(f"result: {result}")
 
         return '\n'.join(result)
 

@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+
 import rabbitpy
 
 import config
@@ -12,7 +14,17 @@ from pkg.agent.constants import RABBITMQ_CALLBACKS
 class RabbitMqEmitter:
     def __init__(self):
         self.logger = logging.getLogger('agent.emitter')
-        self.connection = rabbitpy.Connection(url=RABBITMQ_URI)
+        self.connection = None
+        while True:
+            try:
+                self.connection = rabbitpy.Connection(url=RABBITMQ_URI)
+                break
+            # TODO: Handle auth errors separately
+            except Exception as e:
+                self.logger.error("Connection failed, retrying... Reason: %s" % str(e))
+                time.sleep(1)
+                continue
+
         self.channel = self.connection.channel()
         self.channel.prefetch_count(1)
         self.channel.enable_publisher_confirms()

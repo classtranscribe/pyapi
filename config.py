@@ -2,6 +2,7 @@ import datetime
 import os
 import logging
 import sys
+import urllib.parse
 
 PORT = os.getenv('PORT', 5000)
 DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 't')
@@ -53,7 +54,19 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 PROPAGATE_EXCEPTIONS = True
 
 # AMQP Connection
-RABBITMQ_URI = os.getenv('RABBITMQ_URI', 'amqp://guest:guest@localhost:5672/%2f')
+REQUEUE_TIMEOUT = int(os.getenv('RABBITMQ_REQUEUE_TIMEOUT', 5))
+
+#ADMIN_USER_ID = urllib.parse.quote(os.getenv('ADMIN_USER_ID', 'guest'), safe='')    # default credentials
+#ADMIN_PASSWORD = urllib.parse.quote(os.getenv('ADMIN_PASSWORD', 'guest'), safe='')
+#RMQ_HOST = urllib.parse.quote(os.getenv('RABBITMQ_HOST', 'localhost'), safe='')
+#RMQ_PORT = int(os.getenv('RABBITMQ_PORT', 5672))        # default port is 5672
+#RMQ_PROTOCOL = os.getenv('RABBITMQ_PROTOCOL', 'amqp')   # either amqp or amqps
+#RMQ_VHOST = urllib.parse.quote(os.getenv('RABBITMQ_VHOST', '/'), safe='')
+
+# Build up RABBITMQ from other vars or override directly
+#RABBITMQ_URI = os.getenv('RABBITMQ_URI', f"amqp://{ADMIN_USER_ID}:{ADMIN_PASSWORD}@{RMQ_HOST}:{RMQ_PORT}/{RMQ_VHOST}")
+RABBITMQ_URI = os.getenv('RABBITMQ_URI', "amqp://guest:guest@localhost:5672/%2f")
+
 RABBITMQ_EXCHANGE = os.getenv('RABBITMQ_EXCHANGE', '')
 
 # Listener only (emitter can publish to any queue)

@@ -10,8 +10,7 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from time import perf_counter
 
-import pkg.agent.tasks.lib.titledetector as td
-
+from pkg.agent.tasks.lib import titledetector as td
 
 # CONSTANTS
 OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
@@ -103,7 +102,7 @@ class SceneDetectionAlgorithm(ABC):
 
         # grab filename and directory from video_path
         # note: we don't want the '.mp4' extension (if it exists)
-        short_file_name = os.path.basename(video_path)[:video_path.find('.')]
+        short_file_name = os.path.splitext(os.path.basename(video_path))[0]
         data_directory = os.path.dirname(video_path)
 
         # build up output path based on video's current location

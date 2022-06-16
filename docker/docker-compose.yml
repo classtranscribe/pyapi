@@ -3,37 +3,44 @@ version: "3.4"
 services:
 
   scenedetection:
-    image: classtranscribe/ct-python
+    container_name: "scenedetection"
+    image: classtranscribe/ct-python:sanity-test
     build:
       context: ..
     volumes:
       - "${DATA:-~/docker_data}/data:/data"
+    networks:
+      - classtranscribe
     environment:
       PYTHONUNBUFFERED: "1"
-      RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
-      RABBITMQ_EXCHANGE: ""
+      RABBITMQ_URI: "amqp://guest:guest@rabbitmq:5672/%2f"
       DEBUG: "true"
       DOWNLOAD_MISSING_VIDEOS: "true"
-      READONLY: "true"
       RABBITMQ_QUEUENAME: 'SceneDetection'
       SCENE_DETECT_ALGORITHM_CLASS: "SimStructuralV1"
       SCENE_DETECT_ALGORITHM_MODULE: "pkg.agent.tasks.lib.scenedetection.sim_structural"
     depends_on:
       - rabbitmq
 
+
   phrasehinter:
-    image: classtranscribe/ct-python
+    container_name: "phrasehinter"
+    image: classtranscribe/ct-python:sanity-test
     build:
       context: ..
     volumes:
       - "${DATA:-~/docker_data}/data:/data"
+    networks:
+      - classtranscribe
     environment:
       PYTHONUNBUFFERED: "1"
-      RABBITMQ_URI: 'amqp://guest:guest@rabbitmq:5672/%2f'
-      RABBITMQ_EXCHANGE: ""
+      RABBITMQ_URI: "amqp://guest:guest@rabbitmq:5672/%2f"
       DEBUG: "true"
       DOWNLOAD_MISSING_VIDEOS: "true"
       RABBITMQ_QUEUENAME: 'PhraseHinter'
-      READONLY: "true"
     depends_on:
       - rabbitmq
+
+
+networks:
+  classtranscribe:

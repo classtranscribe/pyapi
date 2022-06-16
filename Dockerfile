@@ -43,5 +43,5 @@ ENV RABBITMQ_URI="amqp://guest:guest@localhost:5672/%2f"
 ENV RABBITMQ_QUEUENAME="ExampleTask"
 
 # Wait for RabbitMQ, then start the application
-CMD ["./entrypoint.sh"]
+CMD ["python", "./agent.py"]
 

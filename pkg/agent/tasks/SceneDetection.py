@@ -1,4 +1,5 @@
 import json
+import os
 
 import requests
 
@@ -60,7 +61,7 @@ class SceneDetection(AbstractTask):
         video_id = body['Data']
         parameters = body.get('TaskParameters', {})
         force = parameters.get('Force', False)
-        readonly = parameters.get('ReadOnly', True)
+        readonly = parameters.get('ReadOnly', False)
         self.logger.info(' [%s] SceneDetection started on videoId=%s...' % (video_id, video_id))
 
         # fetch video metadata by id to get path
@@ -84,6 +85,13 @@ class SceneDetection(AbstractTask):
         if not self.ensure_file_exists(video_id=video_id, file_path=file_path):
             self.logger.warning(' [%s] Skipping SceneDetection: video file not found locally' % video_id)
             return
+
+        # verify file size
+        actual_size = os.path.getsize(file_path)
+        expected_size = video['fileMediaInfo']['format']['size']
+        if actual_size != expected_size:
+            self.logger.warning('Size mismatch on downloaded file: %s (%s bytes, but should be %s)' %
+                                (video_id, actual_size, expected_size))
 
         self.find_scenes(video_id, video, readonly)
 

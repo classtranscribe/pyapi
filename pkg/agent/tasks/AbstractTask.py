@@ -64,18 +64,26 @@ class AbstractTask(ABC):
                     r.raise_for_status()
                     self.logger.info(' [%s] SceneDetection now downloading video data locally: %s' % (video_id, file_path))
 
+                    # make sure that destination directory exists
+                    data_dirname = os.path.dirname(file_path)
+                    data_filename = os.path.basename(file_path)
+                    if not os.path.exists(data_dirname):
+                        os.makedirs(data_dirname)
+
                     with tempfile.NamedTemporaryFile(mode='wb') as f:
-                        for chunk in r.iter_content(chunk_size=8192):
+                        for chunk in r.iter_content(chunk_size=1024):
                             # If you have chunk encoded response uncomment if
                             # and set chunk_size parameter to None.
                             # if chunk:
                             f.write(chunk)
 
-                        # make sure destination directory exists
-                        os.makedirs(os.path.dirname(file_path))
+                        f.flush()
+                        os.sync()
 
-                        # when we've finished writing bytes to temp, rename and move to destination folder
-                        shutil.move(f.name, file_path)
+                        # when we've finished writing bytes to temp, rename file and move to destination folder
+                        os.rename(f.name, data_filename)
+                        shutil.move(data_filename, data_dirname)
+                        os.sync()
 
                     return True
             except Exception as e:
