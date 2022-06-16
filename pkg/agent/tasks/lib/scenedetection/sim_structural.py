@@ -17,7 +17,7 @@ from collections import Counter
 
 from mtcnn_cv2 import MTCNN
 
-logger = logging.getLogger('pkg.agent.tasks.lib.scenedetection.sim_structural.v1')
+logger = logging.getLogger('scenedetection.sim_structural.v1')
 
 TARGET_FPS = float(os.getenv('SCENE_DETECT_FPS', 0.5))
 SCENE_DETECT_USE_FACE = os.getenv('SCENE_DETECT_USE_FACE', 'true') == 'true'

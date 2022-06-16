@@ -9,11 +9,6 @@ import importlib
 
 logger = logging.getLogger('pkg.agent.tasks.scenedetector')
 
-# Default to SimStructuralV1 implementation
-SCENE_DETECT_ALGORITHM_CLASS = os.getenv('SCENE_DETECT_ALGORITHM_CLASS', 'ExampleV1')
-SCENE_DETECT_ALGORITHM_MODULE = os.getenv('SCENE_DETECT_ALGORITHM_MODULE', 'pkg.agent.tasks.lib.scenedetection.example')
-
-
 # Three sections:
 #   1. (Multi?) Subprocess: Analyze scenes - create metrics for every sampled image from the video
 #   2. Main process: Produce scene cut points - find scene start/end points
@@ -44,6 +39,11 @@ def find_scenes(video_path):
         phrases (list of strings): Cleaned pytesseract result as a list of strings
         title (string): Detected title of the current scene
     """
+
+    # Default to SimStructuralV1 implementation
+    SCENE_DETECT_ALGORITHM_CLASS = os.getenv('SCENE_DETECT_ALGORITHM_CLASS', 'SimStructuralV1')
+    SCENE_DETECT_ALGORITHM_MODULE = os.getenv('SCENE_DETECT_ALGORITHM_MODULE',
+                                              'pkg.agent.tasks.lib.scenedetection.sim_structural')
 
     try:
         SceneDetectionAlgorithm_ = getattr(importlib.import_module(SCENE_DETECT_ALGORITHM_MODULE),

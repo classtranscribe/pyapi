@@ -137,3 +137,6 @@ dmypy.json
 cookies
 *.sqlite
 **/pgdata
+client/
+generated/
+**/corpus_count.json
