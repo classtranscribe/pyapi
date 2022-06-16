@@ -27,7 +27,7 @@ SCENE_DETECT_USE_EARLY_DROP = os.getenv('SCENE_DETECT_USE_EARLY_DROP', 'true') =
 # if samples exceeds our threshold, we artificially lower the sampling rate
 MAX_SAMPLES = os.getenv('SCENE_DETECT_MAX_SAMPLES', 3000)  # default ~ 100 minutes at 0.5 fps
 MIN_SCENE_LENGTH = 1  # Minimum scene length in seconds
-MODEL_PATH = 'pkg/agent/tasks/lib/scenedetection/models/poly2.json' # File path of the SVM model to be used
+MODEL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'poly2.json') # File path of the SVM model to be used
 
 detector = MTCNN()
 
