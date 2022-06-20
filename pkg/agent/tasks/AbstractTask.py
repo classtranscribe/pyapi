@@ -10,8 +10,8 @@ import time
 import config
 
 
-TARGET_HOST = 'https://ct-dev.ncsa.illinois.edu'
-TARGET_HOST_JWT = 'example'
+TARGET_HOST = os.getenv('TARGET_HOST', 'http://api')
+TARGET_HOST_JWT = os.getenv('TARGET_HOST_JWT', 'example')
 
 
 # Map task to queuename
@@ -60,7 +60,7 @@ class AbstractTask(ABC):
             # fetch video file using static data path
             self.logger.info(' [%s] SceneDetection attempting to download video data locally: %s' % (video_id, file_path))
             try:
-                with requests.get('%s%s' % (self.target_host, file_path), headers={'Referer': 'https://ct-dev.ncsa.illinois.edu'}, stream=True) as r:
+                with requests.get('%s%s' % (self.target_host, file_path), headers={'Referer': self.target_host}, stream=True) as r:
                     r.raise_for_status()
                     self.logger.info(' [%s] SceneDetection now downloading video data locally: %s' % (video_id, file_path))
 
