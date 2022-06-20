@@ -60,8 +60,8 @@ class RabbitMqListener(RabbitMqEmitter):
             except Exception as e:
                 #message.nack(requeue=True)
                 #self.failure_counter += 1
-                self.logger.error(f" [⚠] Failed to consume message, requeuing in {REQUEUE_TIMEOUT}: {str(e)}")
-                time.sleep(5)
+                self.logger.exception(f" [⚠] Failed to consume message, requeuing in {REQUEUE_TIMEOUT}")
+                time.sleep(REQUEUE_TIMEOUT)
                 message.nack(requeue=True)
 
                 #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d)" % (self.failure_counter, MAX_FAILURES))
