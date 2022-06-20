@@ -87,11 +87,12 @@ class SceneDetection(AbstractTask):
             return
 
         # verify file size
-        actual_size = os.path.getsize(file_path)
-        expected_size = video['fileMediaInfo']['format']['size']
-        if actual_size != expected_size:
-            self.logger.warning('Size mismatch on downloaded file: %s (%s bytes, but should be %s)' %
-                                (video_id, actual_size, expected_size))
+        if 'fileMediaInfo' in video and 'format' in video['fileMediaInfo'] and 'size' in video['fileMediaInfo']['format']:
+            expected_size = video['fileMediaInfo']['format']['size']
+            actual_size = os.path.getsize(file_path)
+            if actual_size != expected_size:
+                self.logger.warning('Size mismatch on downloaded file: %s (%s bytes, but should be %s)' %
+                                    (video_id, actual_size, expected_size))
 
         self.find_scenes(video_id, video, readonly)
 
