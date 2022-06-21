@@ -32,7 +32,7 @@ class SceneDetection(AbstractTask):
         # Call scenedetector.find_scenes, store scene data back in api
         try:
             self.logger.info(' [%s] SceneDetection getting scenes for %s...' % (video_id, file_path))
-            scenes = scenedetector.find_scenes(video_path=file_path)
+            scenes, scenes_meta = scenedetector.find_scenes(video_path=file_path)
 
             # save found scenes to video in api
             #self.logger.debug(' [%s] SceneDetection found scenes: %s' % (video_id, scenes))
@@ -41,7 +41,7 @@ class SceneDetection(AbstractTask):
             else:
                 resp = requests.post(url='%s/api/Task/UpdateSceneData?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
-                                     data=json.dumps({"Scenes": scenes}))
+                                     data=json.dumps({"Scenes": scenes, "ScenesMetadata": scenes_meta}))
 
                 resp.raise_for_status()
                 #self.logger.debug(' [%s] SceneDetection successfully saved scenes: %s' % (video_id, scenes))

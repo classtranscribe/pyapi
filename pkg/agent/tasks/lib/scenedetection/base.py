@@ -1,5 +1,6 @@
 import logging
 import time
+from queue import Empty
 
 import pytesseract
 import cv2
@@ -64,12 +65,29 @@ class SceneDetectionAlgorithm(ABC):
         result_queue = Queue()
         p = Process(target=target, args=(result_queue, args,))
 
+        results = None
+
         # run as subprocess and block until it completes
         p.start()
-        while p.is_alive():
-            time.sleep(2)
-        results = result_queue.get(timeout=5)
+        try:
+            results = result_queue.get(timeout=1*60)   # poison file - probably failed immediately
+        except Empty as expected:
+            # Timeout is expected this early from most SceneDetection jobs - used to locate early failures
+            pass
+
+        if results is None and p.is_alive():
+            try:
+                # If still running, this is likely a valid file.. let things run (timeout after 40 min)
+                results = result_queue.get(timeout=40*60)
+            except Empty as unexpected:
+                # Timeout is expected this early from most SceneDetection jobs - used to locate early failures
+                self.logger.exception("Failed to get subprocess results within the timeout period, "
+                                      "terminating subprocess: %d" % p.pid)
+                p.terminate()
+                raise TimeoutError("Failed to get subprocess results within the timeout period")
+
         p.join()
+
         if results is None:
             raise TimeoutError("Failed to get results from subprocess: %s(%s)" % (target, args))
 
