@@ -55,13 +55,12 @@ def find_scenes(video_path):
         scenes = scene_detection_algorithm.find_scenes(video_path)
 
         # Save algorithm metadata
-        scenes['CT_SCENEDETECT_CLASS'] = SCENE_DETECT_ALGORITHM_CLASS
-        scenes['CT_SCENEDETECT_MODULE'] = SCENE_DETECT_ALGORITHM_MODULE
+        scenes_meta = {'CT_SCENEDETECT_CLASS': SCENE_DETECT_ALGORITHM_CLASS,
+                       'CT_SCENEDETECT_MODULE': SCENE_DETECT_ALGORITHM_MODULE, 'CT_SCENEDETECT_STARTTIME': starttime,
+                       'CT_SCENEDETECT_ENDTIME': time.time_ns()}
 
         # Save timestamp metadata
-        scenes['CT_SCENEDETECT_STARTTIME'] = starttime
-        scenes['CT_SCENEDETECT_ENDTIME'] = time.time_ns()
-        return scenes
+        return scenes, scenes_meta
     except Exception as e:
         logger.error(f"find_scenes({video_path}) throwing Exception:" + str(e))
         logger.error('Failed to lookup SceneDetection Algorithm: %s.%s' % (
