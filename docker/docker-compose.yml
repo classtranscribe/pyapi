@@ -4,7 +4,7 @@ services:
 
   scenedetection:
     container_name: "scenedetection"
-    image: classtranscribe/ct-python:sanity-test
+    image: classtranscribe/ct-python:staging
     build:
       context: ..
     volumes:
@@ -14,18 +14,17 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       RABBITMQ_URI: "amqp://guest:guest@rabbitmq:5672/%2f"
-      DEBUG: "true"
       DOWNLOAD_MISSING_VIDEOS: "true"
       RABBITMQ_QUEUENAME: 'SceneDetection'
-      SCENE_DETECT_ALGORITHM_CLASS: "SimStructuralV1"
-      SCENE_DETECT_ALGORITHM_MODULE: "pkg.agent.tasks.lib.scenedetection.sim_structural"
+      SCENE_DETECT_ALGORITHM_CLASS: "SvmPoly2"
+      SCENE_DETECT_ALGORITHM_MODULE: "pkg.agent.tasks.lib.scenedetection.svm_poly2"
     depends_on:
       - rabbitmq
 
 
   phrasehinter:
     container_name: "phrasehinter"
-    image: classtranscribe/ct-python:sanity-test
+    image: classtranscribe/ct-python:staging
     build:
       context: ..
     volumes:
@@ -35,7 +34,6 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       RABBITMQ_URI: "amqp://guest:guest@rabbitmq:5672/%2f"
-      DEBUG: "true"
       DOWNLOAD_MISSING_VIDEOS: "true"
       RABBITMQ_QUEUENAME: 'PhraseHinter'
     depends_on:
