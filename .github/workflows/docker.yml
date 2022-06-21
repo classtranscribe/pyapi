@@ -122,8 +122,9 @@ jobs:
         with:
           push: true
           platforms: ${{ env.PLATFORMS }}
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:${{ env.BRANCH }}
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:staging
+          cache-from: |
+            type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:${{ env.BRANCH }}
+            type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:staging
           cache-to: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:${{ env.BRANCH }},mode=max
           tags: ${{ env.TAGS }}
           build-args: |
