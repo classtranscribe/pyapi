@@ -50,24 +50,26 @@ class RabbitMqListener(RabbitMqEmitter):
         self.logger.debug(" [✓] Started listening on queue: %s" % self.queue_name)
 
     def process_messages(self, queue, callback):
-        # Consume the message
-        for message in queue:
-            # message.pprint(True)
-            try:
-                callback(message=message, emitter=self)
-                message.ack()
-                self.logger.info(" [✓] Finished processing message")
-            except Exception as e:
-                #message.nack(requeue=True)
-                #self.failure_counter += 1
-                self.logger.exception(f" [⚠] Failed to consume message, requeuing in {REQUEUE_TIMEOUT}")
-                time.sleep(REQUEUE_TIMEOUT)
-                message.nack(requeue=True)
+        while True:
+            # Continuously consume any messages in the queue
+            for message in queue:
+                # message.pprint(True)
+                try:
+                    callback(message=message, emitter=self)
+                    message.ack()
+                    self.logger.info(" [✓] Finished processing message")
+                except Exception as e:
+                    #message.nack(requeue=True)
+                    #self.failure_counter += 1
+                    self.logger.error(f" [⚠] Failed to consume message, requeuing in {REQUEUE_TIMEOUT}: {str(e)}")
+                    time.sleep(5)
+                    message.nack(requeue=False)  # will automatically requeue in ~2 hours
 
-                #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d)" % (self.failure_counter, MAX_FAILURES))
-                #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d): %s" % (self.failure_counter, MAX_FAILURES, e))
-                #if self.failure_counter >= MAX_FAILURES:
-                #    sys.exit(1)
+
+                    #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d)" % (self.failure_counter, MAX_FAILURES))
+                    #self.logger.error(" [⚠] Failed to consume message (attempt # %d/%d): %s" % (self.failure_counter, MAX_FAILURES, e))
+                    #if self.failure_counter >= MAX_FAILURES:
+                    #    sys.exit(1)
 
     def stop_consuming(self, timeout=3):
         # Join thread, if it is active
