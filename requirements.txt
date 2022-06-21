@@ -44,3 +44,8 @@ scenedetect[opencv,progress_bar]
 KalturaApiClient
 
 pytesseract==0.3.9
+
+
+
+# SVM Poly2 SceneDetection
+sklearn==0.0

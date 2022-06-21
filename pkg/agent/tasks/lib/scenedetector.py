@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import os
+import time
 import math
 import json
 import sys
@@ -50,7 +51,17 @@ def find_scenes(video_path):
                                                      SCENE_DETECT_ALGORITHM_CLASS)
 
         scene_detection_algorithm = SceneDetectionAlgorithm_()
-        return scene_detection_algorithm.find_scenes(video_path)
+        starttime = time.time_ns()
+        scenes = scene_detection_algorithm.find_scenes(video_path)
+
+        # Save algorithm metadata
+        scenes['CT_SCENEDETECT_CLASS'] = SCENE_DETECT_ALGORITHM_CLASS
+        scenes['CT_SCENEDETECT_MODULE'] = SCENE_DETECT_ALGORITHM_MODULE
+
+        # Save timestamp metadata
+        scenes['CT_SCENEDETECT_STARTTIME'] = starttime
+        scenes['CT_SCENEDETECT_ENDTIME'] = time.time_ns()
+        return scenes
     except Exception as e:
         logger.error(f"find_scenes({video_path}) throwing Exception:" + str(e))
         logger.error('Failed to lookup SceneDetection Algorithm: %s.%s' % (

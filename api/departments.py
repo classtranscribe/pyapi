@@ -1,4 +1,5 @@
 import logging
+import os
 
 from pkg.db.models.repositories import DepartmentsRepo
 from pkg.db.schemas.schema import DepartmentsSchema
@@ -14,7 +15,6 @@ deptListSchema = DepartmentsSchema(many=True)
 DEPT_NOT_FOUND = "Departments not found for id: {}"
 
 logger = logging.getLogger('api.departments')
-
 
 def get(id):
     dept_data = deptRepo.fetchById(id)
@@ -62,10 +62,10 @@ def create():
 def get_all():
     return deptListSchema.dump(deptRepo.fetchAll()), 200
 
-
 def publish_test_message():
     # example video id
-    video_id = '7fc3b0a5-ae81-4a46-b369-d3fb14eb0866'
+    video_id = '79a84f93-7df6-4e3c-8d9a-94bbb0d7af53'    # STAT
+    # video_id = '7fc3b0a5-ae81-4a46-b369-d3fb14eb0866'   # BIOE Aug 26
     # video_id = 'f6bce30b-d5d5-462c-a74d-e56ece954ca8'
 
     # all tasks should have the same body structure
@@ -76,7 +76,7 @@ def publish_test_message():
     }
 
     try:
-        agent.publish(body=body, routing_key="SceneDetection")
+        agent.publish(body=body, routing_key="PhraseHinter")
     except Exception as e:
         logger.error("Failed to publish message: " + str(e))
 

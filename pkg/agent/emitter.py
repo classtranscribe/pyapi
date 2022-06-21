@@ -29,7 +29,8 @@ class RabbitMqEmitter:
         self.channel.prefetch_count(1)
         self.channel.enable_publisher_confirms()
         self.exchange = None
-        self.init_queues()
+        #self.init_queues()
+        self.init_queue('PhraseHinter')
 
     def init_exchange(self):
         if RABBITMQ_EXCHANGE != '':

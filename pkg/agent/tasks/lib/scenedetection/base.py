@@ -1,4 +1,5 @@
 import logging
+import time
 
 import pytesseract
 import cv2
@@ -65,8 +66,12 @@ class SceneDetectionAlgorithm(ABC):
 
         # run as subprocess and block until it completes
         p.start()
-        results = result_queue.get()
+        while p.is_alive():
+            time.sleep(2)
+        results = result_queue.get(timeout=5)
         p.join()
+        if results is None:
+            raise TimeoutError("Failed to get results from subprocess: %s(%s)" % (target, args))
 
         return results
 
