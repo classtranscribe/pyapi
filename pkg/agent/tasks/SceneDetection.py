@@ -90,7 +90,7 @@ class SceneDetection(AbstractTask):
         if 'fileMediaInfo' in video and 'format' in video['fileMediaInfo'] and 'size' in video['fileMediaInfo']['format']:
             expected_size = video['fileMediaInfo']['format']['size']
             actual_size = os.path.getsize(file_path)
-            if actual_size != expected_size:
+            if int(actual_size) != int(expected_size):
                 self.logger.warning('Size mismatch on downloaded file: %s (%s bytes, but should be %s)' %
                                     (video_id, actual_size, expected_size))
 
