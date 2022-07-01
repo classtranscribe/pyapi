@@ -2,19 +2,16 @@ import cv2
 import json
 import numpy as np
 import os
-import time
 import shutil
+import urllib.request
 from skimage.metrics import structural_similarity as ssim
 from sklearn import svm
-from svm_poly2 import SvmPoly2
-import urllib.request
+from pkg.agent.tasks.lib.scenedetection.svm_poly2 import SvmPoly2
 
-
-DATA_DIR = os.path.dirname(os.path.realpath(__file__))
-MODEL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'poly2.json') # File path of the SVM model to be used
-MODEL_TEST_SET_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', 'SVMPredictionTest.json') # File path of the testing set for SVM model
-TOTAL_TEST_COUNT = 5
-SD = SvmPoly2()
+DIR = os.path.dirname(os.path.realpath(__file__)) # Path to the directory of the test file 
+MODEL_PATH = os.path.join(DIR, 'models', 'poly2.json') # Path to the SVM model
+TEST_SET_PATH = os.path.join(DIR, 'models', 'poly2_test.json') # Path to the testing set for SVM model
+TOTAL_TEST_COUNT = 5 # Total number of test cases to run
 
 def map_to_poly_kernel(features):
     '''
@@ -45,7 +42,32 @@ def map_to_poly_kernel(features):
     
     return kernel_space
 
+def setup_sd():
+    '''
+    Initialize the SceneDetectionAlgorithm object
+
+    Returns:
+    SceneDetectionAlgorithm: the SceneDetectionAlgorithm object used for scene detection
+    '''
+
+    try:
+        return SvmPoly2()
+
+    except Exception as e:
+        print(e)
+        print('ERROR: Cannot initialize the SceneDetectionAlgorithm object!')
+
 def setup_svm_testing_set(path):
+    '''
+    Load the data set to test the prediction accuracy of the model 
+
+    Parameters:
+    path (string): File path to the testing set for SVM model
+
+    Returns:
+    numpy.ndarray, numpy.ndarray: data in feature space and their expected labels
+    '''
+
     try:
         # Load the SVM Model from JSON file
         with open(path, 'r') as f:
@@ -60,9 +82,19 @@ def setup_svm_testing_set(path):
     
     except Exception as e:
         print(e)
-        print('ERROR: Path to SVM testing set is wrong or the file is missing')
+        print('ERROR: Path to SVM testing set is wrong or the file is missing!')
 
 def setup_svm(path):
+    '''
+    Load the SVM model to be testing
+
+    Parameters:
+    path (string): Path to the SVM model
+
+    Returns:
+    sklearn.svm.SVC: SVM model with parameters loaded
+    '''
+
     try:
         # Load the SVM Model from JSON file
         with open(path, 'r') as f:
@@ -88,9 +120,19 @@ def setup_svm(path):
         
     except Exception as e:
         print(e)
-        print('ERROR: Path to SVM model is wrong or the file is missing')
+        print('ERROR: Path to SVM model is wrong or the file is missing!')
 
 def test_model_parameters(model):
+    '''
+    Test if the model parameters are as expected
+
+    Parameters:
+    model (sklearn.svm.SVC): the SVM model
+
+    Returns:
+    int: 0 when test passed, 1 when test failed
+    '''
+
     print("----------" + "SVM Parameters Test" + "---STARTED----------")
     try:
         assert(len(model.support_vectors_[0]) == 10) # Check for input feature space
@@ -101,10 +143,22 @@ def test_model_parameters(model):
         
     except Exception as e:
         print(e)
-        print('ERROR: One of the model parameters is not as expected')
+        print('ERROR: One of the model parameters is not as expected!')
         return 1
 
 def test_model_prediction(model, x_test, y_expected):
+    '''
+    Test if the predicted results of x_test match with expected labels
+
+    Parameters:
+    model (sklearn.svm.SVC): the SVM model
+    x_test (numpy.ndarray): data set in feature space for prediction
+    y_expected (numpy.ndarray): expected label for data entry in x_test
+
+    Returns:
+    int: 0 when test passed, 1 when test failed
+    '''
+    
     print("----------" + "SVM Prediction Test" + "---STARTED----------")
     try:
         y_predicted = model.predict(map_to_poly_kernel(x_test))
@@ -116,64 +170,85 @@ def test_model_prediction(model, x_test, y_expected):
         
     except Exception as e:
         print(e)
-        print('ERROR: At least one of the prediction result of the model is wrong')
+        print('ERROR: At least one of the prediction result of the model is wrong!')
         return 1
 
-# General Testing Scheme For Scene Detection
-def sd_test_scheme(folder_name, url, expected_phrases):
-    # General Testing Scheme
-    print("----------" + folder_name + "---STARTED----------")
+def sd_test_scheme(detector, video_name, url, expected_phrases):
+    '''
+    Run find_scenes() method on the given video, and check the OCR results and frame number for accuracy 
 
-    video_name = folder_name + '.mp4'
+    Parameters:
+    detector (SceneDetectionAlgorithm): the SceneDetectionAlgorithm object that will be called with find_scenes()
+    video_name (string): name of the video to be passed into find_scenes()
+    url (string): url to download the video from Box
+    expected_phrases (list): expected phrases and words that are in the extracted OCR results
+    '''
+
+    print("----------" + video_name + "---STARTED----------")
     
-    video_path = DATA_DIR + '/' + video_name
-    folder_path = DATA_DIR + '/frames/' + folder_name
+    try:
+        video_path = DIR + '/' + video_name + '.mp4'
+        folder_path = DIR + '/frames/' + video_name + '.mp4'
 
-    # Download the video file
-    urllib.request.urlretrieve(url, video_name) 
+        # Download the video file
+        urllib.request.urlretrieve(url, video_path) 
 
-    # Run SceneDetector on the video 
-    toy_lecture_json = SD.find_scenes(video_name)
+        # Run SceneDetector on the video 
+        video_json = detector.find_scenes(video_path)
 
-    scenes = toy_lecture_json
-    
-    corpus = []
-    for scene in scenes:
-        corpus.append(scene['phrases'])
-    
-    raw_phrases = '\n'.join( ['\n'.join(words) for words in corpus] )
-    raw_phrases = raw_phrases.replace('``','')
-
-    # Check phrase occurance
-    for phrase in expected_phrases:
-        assert(phrase in raw_phrases)
-        print("Phrase " + phrase + " was in the OCR output")
-    
-    # Check frame number
-    frame_list = os.listdir(folder_path)
-    for frame_name in frame_list:
-        frame_path = folder_path + '/' + frame_name
-        output_frame = cv2.imread(frame_path)
-        frame_number = frame_name[frame_name.rfind('-')+1 : frame_name.find('.')]
+        scenes = video_json
         
-        cap = cv2.VideoCapture(video_path)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_number) )  
-        ret, frame = cap.read()
+        corpus = []
+        for scene in scenes:
+            corpus.append(scene['phrases'])
         
-        rezied_frame = cv2.cvtColor(cv2.resize(frame, (320,240)), cv2.COLOR_BGR2GRAY)
-        resized_output_frame = cv2.cvtColor(cv2.resize(output_frame, (320,240)), cv2.COLOR_BGR2GRAY)
+        raw_phrases = '\n'.join( ['\n'.join(words) for words in corpus] )
+        raw_phrases = raw_phrases.replace('``','')
+
+        # Check phrase occurrence
+        for phrase in expected_phrases:
+            assert(phrase in raw_phrases)
+            print("Phrase " + phrase + " was in the OCR output")
         
-        sim = ssim(rezied_frame, resized_output_frame)
-        print('Frame ' + frame_number + " Simlarity: " + str(sim))
-        #assert(sim > 0.99)
+        # Check frame number
+        frame_list = os.listdir(folder_path)
+        for frame_name in frame_list:
+            frame_path = folder_path + '/' + frame_name
+            output_frame = cv2.imread(frame_path)
+            frame_number = frame_name[frame_name.rfind('-')+1 : frame_name.rfind('.')]
 
-    # Delete files
-    os.remove(video_path)
-    shutil.rmtree(folder_path)
+            cap = cv2.VideoCapture(video_path)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_number) )  
+            ret, frame = cap.read()
+            
+            rezied_frame = cv2.cvtColor(cv2.resize(frame, (320,240)), cv2.COLOR_BGR2GRAY)
+            resized_output_frame = cv2.cvtColor(cv2.resize(output_frame, (320,240)), cv2.COLOR_BGR2GRAY)
+            
+            sim = ssim(rezied_frame, resized_output_frame)
+            print('Frame ' + frame_number + " Simlarity: " + str(sim))
+            assert(sim > 0.99)
 
-    print("----------" + folder_name + "---Passed----------")
+        # Delete files
+        os.remove(video_path)
+        shutil.rmtree(folder_path)
 
-def test_scenedetector_results():
+        print("----------" + video_name + "---Passed----------")
+    
+    except Exception as e:
+        print(e)
+        print('ERROR: Error detected when running find_scenes()!')
+
+def test_scenedetector_results(detector):
+    '''
+    Run find_scenes() method on three downloaded videos, and check results for accuracy 
+
+    Parameters:
+    detector (SceneDetectionAlgorithm): the SceneDetectionAlgorithm object that will be called with find_scenes()
+
+    Returns:
+    int: the number of failed cases
+    '''
+
     video_names = ['test_1_toy_lecture', 'test_2_241_thread', 'test_3_adv582_w3']
     urls = [
         'https://app.box.com/index.php?rm=box_download_shared_file&shared_name=pec6m3vbjzu2l4d2m1gv9588npq9nw7o&file_id=f_827175578540',
@@ -189,33 +264,38 @@ def test_scenedetector_results():
     error = 0
     for i in range(len(video_names)):
         try:
-            sd_test_scheme(video_names[i], urls[i], expected_phrases_list[i])
+            sd_test_scheme(detector, video_names[i], urls[i], expected_phrases_list[i])
         except Exception as e:
             error += 1
             print(e)
-    shutil.rmtree(DATA_DIR + '/frames')
+            print('ERROR: One video test case for find_scenes() failed!')
+    shutil.rmtree(DIR + '/frames')
     return error
 
 def run_tests():
+    '''
+    Run all the test cases
+
+    Returns:
+    int: the number of failed test cases
+    '''
+
     fail_count = 0
     try:
         print("Setting Up")
+        detector = setup_sd()
         model = setup_svm(MODEL_PATH)
-        x_test, y_expected = setup_svm_testing_set(MODEL_TEST_SET_PATH)
+        x_test, y_expected = setup_svm_testing_set(TEST_SET_PATH)
+        
         print("Running Tests")
         fail_count += test_model_parameters(model)
         fail_count += test_model_prediction(model, x_test, y_expected)
-        fail_count += test_scenedetector_results()
-        # insert other tests here if you want
+        fail_count += test_scenedetector_results(detector)
     except Exception as e:
-        fail_count +=1
         print(e)
-    #cleanup_files()
     print(f"{TOTAL_TEST_COUNT} Test(s) finished {fail_count} failed")
     return fail_count
 
 if __name__ == '__main__': 
-    if 'DATA_DIRECTORY' not in os.environ.keys():
-        os.environ['DATA_DIRECTORY'] = str(os.getcwd())	
     run_tests()
     print('done')
