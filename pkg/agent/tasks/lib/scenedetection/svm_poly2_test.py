@@ -3,10 +3,13 @@ import json
 import numpy as np
 import os
 import shutil
+import sys
 import urllib.request
 from skimage.metrics import structural_similarity as ssim
 from sklearn import svm
-from pkg.agent.tasks.lib.scenedetection.svm_poly2 import SvmPoly2
+import tempfile
+#from pkg.agent.tasks.lib.scenedetection.svm_poly2 import SvmPoly2
+from svm_poly2 import SvmPoly2
 
 DIR = os.path.dirname(os.path.realpath(__file__)) # Path to the directory of the test file 
 MODEL_PATH = os.path.join(DIR, 'models', 'poly2.json') # Path to the SVM model
@@ -135,8 +138,8 @@ def test_model_parameters(model):
 
     print("----------" + "SVM Parameters Test" + "---STARTED----------")
     try:
-        assert(len(model.support_vectors_[0]) == 10) # Check for input feature space
-        assert(model.get_params()['kernel'] == 'linear') # Check for input feature space
+        assert len(model.support_vectors_[0]) == 10, f"Model has incorrect dimensions, {len(model.support_vectors_[0])} (expected 10)"
+        assert model.get_params()['kernel'] == 'linear', f"Model has incorrect kernel, {model.get_params()['kernel']} (expected linear)"
 
         print("----------" + "SVM Parameters Test" + "---PASSED----------")
         return 0
@@ -163,7 +166,7 @@ def test_model_prediction(model, x_test, y_expected):
     try:
         y_predicted = model.predict(map_to_poly_kernel(x_test))
         for i in range(len(y_predicted)):
-            assert(y_predicted[i] == y_expected[i])
+            assert y_predicted[i] == y_expected[i], f"Predicted label dose not match with the expected label, {y_predicted[i]} (expected {y_expected[i]})"
 
         print("----------" + "SVM Prediction Test" + "---PASSED----------")
         return 0
@@ -187,8 +190,9 @@ def sd_test_scheme(detector, video_name, url, expected_phrases):
     print("----------" + video_name + "---STARTED----------")
     
     try:
-        video_path = DIR + '/' + video_name + '.mp4'
-        folder_path = DIR + '/frames/' + video_name + '.mp4'
+        video_path = os.getcwd() + '/' + video_name + '.mp4'
+        folder_path = os.getcwd() + '/frames/' + video_name + '.mp4'
+        print("Path to the video:" + video_path)
 
         # Download the video file
         urllib.request.urlretrieve(url, video_path) 
@@ -207,7 +211,7 @@ def sd_test_scheme(detector, video_name, url, expected_phrases):
 
         # Check phrase occurrence
         for phrase in expected_phrases:
-            assert(phrase in raw_phrases)
+            assert phrase in raw_phrases, f"Phrase {phrase} is expected to be inside the OCR output, but is not"
             print("Phrase " + phrase + " was in the OCR output")
         
         # Check frame number
@@ -226,11 +230,7 @@ def sd_test_scheme(detector, video_name, url, expected_phrases):
             
             sim = ssim(rezied_frame, resized_output_frame)
             print('Frame ' + frame_number + " Simlarity: " + str(sim))
-            assert(sim > 0.99)
-
-        # Delete files
-        os.remove(video_path)
-        shutil.rmtree(folder_path)
+            assert sim > 0.99, f"Frame {frame_number} extracted dose not match with the original frame inside the video"
 
         print("----------" + video_name + "---Passed----------")
     
@@ -269,12 +269,14 @@ def test_scenedetector_results(detector):
             error += 1
             print(e)
             print('ERROR: One video test case for find_scenes() failed!')
-    shutil.rmtree(DIR + '/frames')
     return error
 
-def run_tests():
+def run_tests(tempdir):
     '''
     Run all the test cases
+
+    Parameters:
+    tempdir (String): file path to store temporary downloaded files
 
     Returns:
     int: the number of failed test cases
@@ -297,5 +299,10 @@ def run_tests():
     return fail_count
 
 if __name__ == '__main__': 
-    run_tests()
-    print('done')
+    fail_count = 0
+    with tempfile.TemporaryDirectory() as tempdir:
+        print( f"Using {tempdir} for downloads")
+        os.chdir(tempdir)
+        fail_count = run_tests(tempdir)
+    if fail_count > 0:
+        sys.exit(1) # Exiting with a non-zero value
