@@ -8,8 +8,8 @@ import urllib.request
 from skimage.metrics import structural_similarity as ssim
 from sklearn import svm
 import tempfile
-#from pkg.agent.tasks.lib.scenedetection.svm_poly2 import SvmPoly2
-from svm_poly2 import SvmPoly2
+from pkg.agent.tasks.lib.scenedetection.svm_poly2 import SvmPoly2
+
 
 DIR = os.path.dirname(os.path.realpath(__file__)) # Path to the directory of the test file 
 MODEL_PATH = os.path.join(DIR, 'models', 'poly2.json') # Path to the SVM model
@@ -294,6 +294,7 @@ def run_tests(tempdir):
         fail_count += test_model_prediction(model, x_test, y_expected)
         fail_count += test_scenedetector_results(detector)
     except Exception as e:
+        fail_count += 1
         print(e)
     print(f"{TOTAL_TEST_COUNT} Test(s) finished {fail_count} failed")
     return fail_count
