@@ -54,8 +54,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 PROPAGATE_EXCEPTIONS = True
 
 # AMQP Connection
-REQUEUE_TIMEOUT = int(os.getenv('RABBITMQ_REQUEUE_TIMEOUT', 5))
-
 #ADMIN_USER_ID = urllib.parse.quote(os.getenv('ADMIN_USER_ID', 'guest'), safe='')    # default credentials
 #ADMIN_PASSWORD = urllib.parse.quote(os.getenv('ADMIN_PASSWORD', 'guest'), safe='')
 #RMQ_HOST = urllib.parse.quote(os.getenv('RABBITMQ_HOST', 'localhost'), safe='')
