@@ -6,17 +6,17 @@ import pytesseract
 import cv2
 import decord
 import os
+import math
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, Semaphore
 from time import perf_counter
 
-from pkg.agent.tasks.lib import titledetector as td
+from pkg.agent.tasks.lib import titledetector as t
 
 # CONSTANTS
 OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
-
 
 class SceneDetectionAlgorithm(ABC):
 
@@ -92,6 +92,44 @@ class SceneDetectionAlgorithm(ABC):
             raise TimeoutError("Failed to get results from subprocess: %s(%s)" % (target, args))
 
         return results
+    
+    def extract_scene_information_batch(self, video_path, timestamps, frame_cuts, everyN, start_time):
+        """
+        Wrapper to extract useful features from each detected scenes and output scene images as a sequence of subprocess. 
+        Each subprocess will process a batch of frames.
+
+        Parameters:
+        video_path (string): Video path
+        timestamps (list of float): Timestamp array for sample frames
+        frame_cuts (list of float): Frame number array for sample frames
+        everyN (list of float): Number of frames that is ignored
+        start_time (list of float): Start time of the whole process
+
+        Returns:
+        string: Features of detected scenes
+        """
+
+        CONCURRENCY = 1 # Maximum concurrent processes allowed
+        FRAME_PER_PROCESS = 10
+        sema = Semaphore(CONCURRENCY)
+
+        len_frame_cuts = len(frame_cuts)
+        num_batches = math.floor(len_frame_cuts / FRAME_PER_PROCESS) + 1
+
+        results = []
+        for i in range(num_batches):
+            start_idx = i * FRAME_PER_PROCESS
+            end_idx = min(start_idx + FRAME_PER_PROCESS + 1, len_frame_cuts)
+            print("Image extraction and OCR - Processing from " + str(start_idx) + " to " + str(end_idx))
+
+            sema.acquire()
+            args = (video_path, timestamps, frame_cuts[start_idx: end_idx], everyN, start_time)
+            local_result = self.run_as_subprocess(target=self._extract_scene_information, args=args)
+            results.extend(local_result)
+            sema.release()
+        
+        print("Image extraction and OCR - " + str(len(results)) + " extracted!")
+        return results
 
     def extract_scene_information(self, video_path, timestamps, frame_cuts, everyN, start_time):
         """
@@ -111,6 +149,7 @@ class SceneDetectionAlgorithm(ABC):
         return self.run_as_subprocess(target=self._extract_scene_information, args=args)
 
     def _extract_scene_information(self, result_queue, args):
+
         """
         Internal helper method to extract useful features from each detected scenes and output scene images.
 
@@ -217,4 +256,8 @@ class SceneDetectionAlgorithm(ABC):
         result_queue.put(scenes)
 
         return scenes
+    
+
+
+
 
