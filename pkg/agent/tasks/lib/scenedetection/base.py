@@ -13,7 +13,7 @@ from datetime import datetime
 from multiprocessing import Queue, Process, Semaphore
 from time import perf_counter
 
-from pkg.agent.tasks.lib import titledetector as t
+from pkg.agent.tasks.lib import titledetector as td
 
 # CONSTANTS
 OCR_CONFIDENCE = 80  # OCR confidnece used to extract text in detected scenes. Higher confidence to extract insightful information
