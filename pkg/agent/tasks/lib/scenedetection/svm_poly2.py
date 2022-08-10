@@ -16,6 +16,7 @@ from sklearn import svm
 from collections import Counter
 
 from mtcnn_cv2 import MTCNN
+from multiprocessing import Queue, Process, Semaphore
 
 TARGET_FPS = float(os.getenv('SCENE_DETECT_FPS', 0.5))
 SCENE_DETECT_USE_FACE = os.getenv('SCENE_DETECT_USE_FACE', 'true') == 'true'
@@ -226,7 +227,6 @@ def calculate_score(sim_structural, sim_ocr, sim_structural_no_face):
     predicted_labels = loaded_clf.predict(sim_combined)
 
     return predicted_labels
-
 
 def generate_frame_similarity(video_path, num_samples, everyN, start_time):
     """
@@ -447,7 +447,245 @@ def _enumerate_scene_candidates(result_queue, args):
 
 
 class SvmPoly2(SceneDetectionAlgorithm):
+    def _generate_frame_similarity_batch(self, result_queue, args):
+        """
+        Generate simlarity values for a batch of sample frames.
+        This function should be run in a subprocess
 
+        Parameters:
+        video_path (string): Video path
+        num_samples (list of float): Amount of samples
+        everyN (list of float): Number of frames that is ignored each iteration
+        start_time (list of float): Start time of the whole process
+
+        Returns:
+        List of string: Timestamps array of each sample frame
+        List of float: sim_structural array of each sample frame
+        List of float: sim_structural_no_face array of each sample frame
+        List of float: sim_ocr array of each sample frame
+        """
+        (video_path, start_idx, end_idx, everyN, start_time) = args
+        num_samples = end_idx - start_idx
+
+        SIM_OCR_CONFIDENCE = 55  # OCR confidnece used to generate sim_ocr
+        DROP_THRESHOLD = 0.95  # Minimum sim_structural confidnece to conclude no scene changes
+
+        # Stores the last frame read
+        last_frame = 0
+
+        # Stores the last face detetion result
+        last_face_detection_result = 0
+
+        # Stores the OCR output of last frame read
+        last_ocr = dict()
+
+        # List of similarities (SSIMs) between frames
+        sim_structural = np.zeros(num_samples)
+
+        # List of OCR outputs and OCR similarities
+        ocr_output = []
+        sim_ocr = np.zeros(num_samples)
+
+        # List of similarities (SSIMs) between frames when face is removed
+        sim_structural_no_face = np.zeros(num_samples)
+
+        timestamps = np.zeros(num_samples)
+
+        # Video Reader
+        vr_full = decord.VideoReader(video_path, ctx=decord.cpu(0))
+        last_log_time = 0
+        # For this loop only we are not using real frame numbers; we are skipping frames to improve processing speed
+
+        # Avoid memory leak by using del
+        curr_face_detection_result = None
+        last_face_detection_result = None
+        frame_vr = None
+        frame = None
+        last_frame = None
+        curr_frame = None
+        ocr_frame = None
+        str_text = None
+
+        for i in range(start_idx, end_idx):
+
+            t = perf_counter()
+            if t >= last_log_time + 30:
+                print(
+                    f"find_scenes({video_path}): {i}/{num_samples}. Elapsed {int(t - start_time)} s")
+                last_log_time = t
+
+            # Read the next frame, resizing and converting to grayscale
+            frame_vr = vr_full[i * everyN]
+            frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
+
+            # Save the time stamp of each frame
+            timestamps[i - start_idx] = vr_full.get_frame_timestamp(i * everyN)[0]
+
+            curr_frame = cv2.cvtColor(cv2.resize(
+                frame, (320, 240)), cv2.COLOR_BGR2GRAY)
+
+            # Calculate the SSIM between the current frame and last frame
+            if i - start_idx >= 1:
+                sim_structural[i - start_idx] = ssim(last_frame, curr_frame)
+
+            # Check the sim_structural score to ignore Face Detection and OCR
+            is_early_drop = (i - start_idx >= 1 and sim_structural[i - start_idx] >= DROP_THRESHOLD and SCENE_DETECT_USE_EARLY_DROP)
+
+            # Drop Face Detection and OCR
+            if is_early_drop:
+                sim_structural[i - start_idx] = 1  # By setting all of these to 1 we declare that there is no change in frame here.
+                sim_structural_no_face[i - start_idx] = 1
+                sim_ocr[i - start_idx] = 1
+
+            # Continue Face Detection and OCR
+            else:
+                if SCENE_DETECT_USE_FACE:
+                    # Run Face Detection upon the current frame
+                    curr_face_detection_result = require_face_result(curr_frame)
+
+                    # Calculate the SSIM between the current frame and last frame when face & upper body are removed
+                    if i - start_idx >= 1:
+                        sim_structural_no_face[i - start_idx] = require_ssim_with_face_detection(
+                            curr_frame, curr_face_detection_result, last_frame, last_face_detection_result)
+
+                    # Save the current face detection result for the next iteration
+                    del last_face_detection_result
+                    last_face_detection_result = curr_face_detection_result
+                else:
+                    sim_structural_no_face[i - start_idx] = sim_structural[i - start_idx]
+
+                if SCENE_DETECT_USE_OCR:
+                    # Calculate the OCR difference between the current frame and last frame
+                    ocr_frame = cv2.cvtColor(cv2.resize(
+                        frame, (480, 360)), cv2.COLOR_BGR2GRAY)
+                    str_text = pytesseract.image_to_data(
+                        ocr_frame, output_type='dict')
+
+                    phrases = Counter()
+                    for j in range(len(str_text['conf'])):
+                        if int(float(str_text['conf'][j])) >= SIM_OCR_CONFIDENCE and len(str_text['text'][j].strip()) > 0:
+                            phrases[str_text['text'][j]
+                            ] += (float(str_text['conf'][j]) / 100)
+
+                    del str_text
+                    curr_ocr = dict(phrases)
+
+                    if i >= 1:
+                        sim_ocr[i - start_idx] = compare_ocr_difference(last_ocr, curr_ocr)
+
+                    ocr_output.append(phrases)
+
+                    # Save the current OCR output for the next iteration
+                    if last_ocr:
+                        del last_ocr
+                    last_ocr = curr_ocr
+                else:
+                    sim_ocr[i - start_idx] = 1 if i >= 1 else 0
+
+            # Save the current frame for the next iteration
+            if last_frame is not None:
+                del last_frame
+            last_frame = curr_frame
+
+            # One or more these prevents a memory leak. (16GB over 10,000 samples)
+        if SCENE_DETECT_USE_OCR:
+            del curr_face_detection_result
+            del last_ocr
+
+        del last_frame  # May prevent a memory leak
+        del frame_vr
+        del frame
+        del curr_frame
+
+        results = (timestamps, sim_structural, sim_structural_no_face, sim_ocr)
+        result_queue.put(results)
+
+        return results
+    
+    def enumerate_scene_candidates_batch(self, video_path, start_time):
+        """
+        Given a video path, parse the video file and look for possible location where scenes could be cut as a sequence of subprocess. 
+        Each subprocess will process a batch of frames.
+
+        Parameters:
+        video_path (string): Video path
+        start_time (datetime): the time at which the task started (for reporting incremental performance or progress)
+
+        Returns:
+        string: Features of detected scenes
+        """
+        CONCURRENCY = 1
+        FRAME_PER_PROCESS = 100 # Maximum concurrent processes allowed
+
+        print(f"find_scenes({video_path}) starting...")
+        print(
+            f"SCENE_DETECT_USE_FACE={SCENE_DETECT_USE_FACE}, SCENE_DETECT_USE_OCR={SCENE_DETECT_USE_OCR}, TARGET_FPS={TARGET_FPS}")
+
+        # Check if the video file exists
+        if os.path.exists(video_path):
+            print(f"{video_path}: Found file!")
+        else:
+            print(f"{video_path}: File not found -returning empty scene cuts ")
+            return json.dumps([])
+
+        # Get the video capture and number of frames and fps
+        cap = cv2.VideoCapture(video_path)
+        num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        fps = float(cap.get(cv2.CAP_PROP_FPS))
+
+        # Input FPS could be < targetFPS
+        everyN = max(1, int(fps / TARGET_FPS))
+
+        num_samples = num_frames // everyN
+
+        print(
+            f"find_scenes({video_path}): frames={num_frames}. fps={fps}. everyN={everyN}. samples={num_samples}.")
+
+        # examine num_samples < 3000 (tbd)? if so, lower sampling rate (TARGET_FPS?)
+        # probably ~3000 will be maximum in practice
+        if num_samples > MAX_SAMPLES:
+            print(
+                f" >>> WARNING: Sampling every {everyN} frame with {num_frames} frames would "
+                f"exceed maximum number of samples {MAX_SAMPLES}.")
+            everyN = int(math.ceil(num_frames / MAX_SAMPLES))
+            num_samples = num_frames // everyN
+            print(f" >>> WARNING: Using alternative sampling rate. everyN={everyN}. samples={num_samples}.")
+
+        # Mininum number of frames per scene
+        min_samples_between_cut = max(0, int(MIN_SCENE_LENGTH * TARGET_FPS))
+
+        # Scene Analysis
+        sema = Semaphore(CONCURRENCY)
+        num_batches = math.floor(num_samples / FRAME_PER_PROCESS) + 1
+
+        timestamps = []
+        sim_structural = []
+        sim_structural_no_face = []
+        sim_ocr = []
+        for i in range(num_batches):
+            start_idx = i * FRAME_PER_PROCESS
+            end_idx = min(start_idx + FRAME_PER_PROCESS, num_samples)
+            print("Scene Analysis - Processing from " + str(start_idx) + " to " + str(end_idx))
+
+            sema.acquire()
+            args = (video_path, start_idx, end_idx, everyN, start_time)
+            local_result = self.run_as_subprocess(target=self._generate_frame_similarity_batch, args=args)
+            
+            timestamps.extend(local_result[0])
+            sim_structural.extend(local_result[1])
+            sim_structural_no_face.extend(local_result[2])
+            sim_ocr.extend(local_result[3])
+            sema.release()
+        
+        print("Scene Analysis - " + str(len(timestamps)) + " extracted!")
+
+        t = perf_counter()
+        print(
+            f"find_scenes('{video_path}',...) Scene Analysis Complete.  Time so far {int(t - start_time)} seconds. Defining Scene Cut points next")
+
+        return (min_samples_between_cut, num_samples, num_frames, everyN, timestamps, sim_structural, sim_structural_no_face, sim_ocr)
+    
     def enumerate_scene_candidates(self, video_path, start_time):
         return self.run_as_subprocess(target=_enumerate_scene_candidates, args=(video_path, start_time))
 
@@ -468,7 +706,7 @@ class SvmPoly2(SceneDetectionAlgorithm):
         # 1. Enumerate candidates as subprocess and block until it completes
         print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
         (min_samples_between_cut, num_samples, num_frames, everyN, timestamps,
-            sim_structural, sim_structural_no_face, sim_ocr) = self.enumerate_scene_candidates(video_path, start_time)
+            sim_structural, sim_structural_no_face, sim_ocr) = self.enumerate_scene_candidates_batch(video_path, start_time)
 
         # 2. Calculate the combined similarities score
         print(' >>>>> SceneDetection Running Step 2/3 (main process): ' + video_path)
@@ -502,6 +740,6 @@ class SvmPoly2(SceneDetectionAlgorithm):
         frame_cuts = [int(s * everyN) for s in sample_cuts]
 
         # Finish up by calling helper method to cut scenes and run OCR
-        print(' >>>>> SceneDetection Running Step 3/3 (subprocess): ' + video_path)
-        return self.extract_scene_information(video_path, timestamps, frame_cuts, everyN, start_time)
+        print(' >>>>> SceneDetection Running Step 3/3 (mutiple subprocess): ' + video_path)
+        return self.extract_scene_information_batch(video_path, timestamps, frame_cuts, everyN, start_time)
 
