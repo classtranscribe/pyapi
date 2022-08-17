@@ -4,7 +4,6 @@ from queue import Empty
 
 import pytesseract
 import cv2
-import decord
 import os
 import math
 
@@ -110,7 +109,7 @@ class SceneDetectionAlgorithm(ABC):
         """
 
         CONCURRENCY = 1 # Maximum concurrent processes allowed
-        FRAME_PER_PROCESS = 10
+        FRAME_PER_PROCESS = 30
         sema = Semaphore(CONCURRENCY)
 
         len_frame_cuts = len(frame_cuts)
@@ -187,8 +186,8 @@ class SceneDetectionAlgorithm(ABC):
         os.makedirs(out_directory, exist_ok=True)
         last_log_time = 0
 
-        # Video Reader
-        vr_full = decord.VideoReader(video_path, ctx=decord.cpu(0))
+        # Opencv Reader
+        cap = cv2.VideoCapture(video_path)
 
         for i, scene in enumerate(scenes):
             requested_frame_number = (scene['frame_start'] + scene['frame_end']) // 2
@@ -199,9 +198,9 @@ class SceneDetectionAlgorithm(ABC):
                     f"find_scenes({video_path}): {i}/{len(scenes)}. Elapsed {int(t - cut_detect_time)} s")
                 last_log_time = t
 
-            # Read a frame through decord
-            frame_vr = vr_full[requested_frame_number]
-            frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
+            # Read a frame through opencv
+            cap.set(cv2.CAP_PROP_POS_FRAMES, requested_frame_number)
+            ret, frame = cap.read()
 
             img_file = os.path.join(
                 out_directory, f"{short_file_name}_frame-{requested_frame_number}.jpg")
@@ -245,13 +244,10 @@ class SceneDetectionAlgorithm(ABC):
             # Leading to OOM
             # Replaced with 'with' statement instead for testing
 
-            del frame_vr
             del frame
 
             del gray_frame
             del str_text
-
-        del vr_full
 
         result_queue.put(scenes)
 
