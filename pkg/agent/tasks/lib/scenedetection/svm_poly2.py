@@ -1,7 +1,6 @@
 from pkg.agent.tasks.lib.scenedetection.base import SceneDetectionAlgorithm
 
 
-
 import math
 import json
 import os
@@ -9,7 +8,6 @@ import os
 import numpy as np
 import pytesseract
 import cv2
-import decord
 from time import perf_counter
 from skimage.metrics import structural_similarity as ssim
 from sklearn import svm
@@ -269,15 +267,15 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
 
     timestamps = np.zeros(num_samples)
 
-    # Video Reader
-    vr_full = decord.VideoReader(video_path, ctx=decord.cpu(0))
+    # Opencv Reader
+    cap = cv2.VideoCapture(video_path)
+
     last_log_time = 0
     # For this loop only we are not using real frame numbers; we are skipping frames to improve processing speed
 
     # Avoid memory leak by using del
     curr_face_detection_result = None
     last_face_detection_result = None
-    frame_vr = None
     frame = None
     last_frame = None
     ocr_frame = None
@@ -291,12 +289,11 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
                 f"find_scenes({video_path}): {i}/{num_samples}. Elapsed {int(t - start_time)} s")
             last_log_time = t
 
-        # Read the next frame, resizing and converting to grayscale
-        frame_vr = vr_full[i * everyN]
-        frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
+        # Read a frame through opencv
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i * everyN)
+        ret, frame = cap.read()
 
-        # Save the time stamp of each frame
-        timestamps[i] = vr_full.get_frame_timestamp(i * everyN)[0]
+        timestamps[i] = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
 
         curr_frame = cv2.cvtColor(cv2.resize(
             frame, (320, 240)), cv2.COLOR_BGR2GRAY)
@@ -370,7 +367,6 @@ def generate_frame_similarity(video_path, num_samples, everyN, start_time):
         del last_ocr
 
     del last_frame  # May prevent a memory leak
-    del frame_vr
     del frame
     del curr_frame
 
@@ -490,16 +486,16 @@ class SvmPoly2(SceneDetectionAlgorithm):
         sim_structural_no_face = np.zeros(num_samples)
 
         timestamps = np.zeros(num_samples)
+        
+        # Opencv Reader
+        cap = cv2.VideoCapture(video_path)
 
-        # Video Reader
-        vr_full = decord.VideoReader(video_path, ctx=decord.cpu(0))
         last_log_time = 0
         # For this loop only we are not using real frame numbers; we are skipping frames to improve processing speed
 
         # Avoid memory leak by using del
         curr_face_detection_result = None
         last_face_detection_result = None
-        frame_vr = None
         frame = None
         last_frame = None
         curr_frame = None
@@ -511,15 +507,14 @@ class SvmPoly2(SceneDetectionAlgorithm):
             t = perf_counter()
             if t >= last_log_time + 30:
                 print(
-                    f"find_scenes({video_path}): {i}/{num_samples}. Elapsed {int(t - start_time)} s")
+                    f"find_scenes({video_path}): {i - start_idx}/{num_samples}. Elapsed {int(t - start_time)} s")
                 last_log_time = t
 
-            # Read the next frame, resizing and converting to grayscale
-            frame_vr = vr_full[i * everyN]
-            frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
-
-            # Save the time stamp of each frame
-            timestamps[i - start_idx] = vr_full.get_frame_timestamp(i * everyN)[0]
+            # Read a frame through opencv
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i * everyN)
+            ret, frame = cap.read()
+            
+            timestamps[i - start_idx] = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
 
             curr_frame = cv2.cvtColor(cv2.resize(
                 frame, (320, 240)), cv2.COLOR_BGR2GRAY)
@@ -593,7 +588,6 @@ class SvmPoly2(SceneDetectionAlgorithm):
             del last_ocr
 
         del last_frame  # May prevent a memory leak
-        del frame_vr
         del frame
         del curr_frame
 
@@ -615,7 +609,7 @@ class SvmPoly2(SceneDetectionAlgorithm):
         string: Features of detected scenes
         """
         CONCURRENCY = 1
-        FRAME_PER_PROCESS = 100 # Maximum concurrent processes allowed
+        FRAME_PER_PROCESS = 300 # Maximum concurrent processes allowed
 
         print(f"find_scenes({video_path}) starting...")
         print(
