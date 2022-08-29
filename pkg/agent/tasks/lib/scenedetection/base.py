@@ -122,9 +122,14 @@ class SceneDetectionAlgorithm(ABC):
             print("Image extraction and OCR - Processing from " + str(start_idx) + " to " + str(end_idx))
 
             sema.acquire()
-            args = (video_path, timestamps, frame_cuts[start_idx: end_idx], everyN, start_time)
-            local_result = self.run_as_subprocess(target=self._extract_scene_information, args=args)
-            results.extend(local_result)
+            try:
+                args = (video_path, timestamps, frame_cuts[start_idx: end_idx], everyN, start_time)
+                local_result = self.run_as_subprocess(target=self._extract_scene_information, args=args)
+                results.extend(local_result)
+
+            except Exception as e:
+                print(f"_extract_scene_information throwing Exception:" + str(e))
+
             sema.release()
         
         print("Image extraction and OCR - " + str(len(results)) + " extracted!")
