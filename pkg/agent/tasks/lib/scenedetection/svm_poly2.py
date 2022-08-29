@@ -1,6 +1,5 @@
 from pkg.agent.tasks.lib.scenedetection.base import SceneDetectionAlgorithm
 
-
 import math
 import json
 import os
@@ -511,9 +510,18 @@ class SvmPoly2(SceneDetectionAlgorithm):
                 last_log_time = t
 
             # Read a frame through opencv
-            cap.set(cv2.CAP_PROP_POS_FRAMES, i * everyN)
+            requested_frame_number = i * everyN
+            cap.set(cv2.CAP_PROP_POS_FRAMES, requested_frame_number)
             ret, frame = cap.read()
-            
+
+            # Read a null frame, truncate the result arrays
+            if type(frame) != np.ndarray:
+                timestamps = timestamps[0:i - start_idx]
+                sim_structural = sim_structural[0:i - start_idx]
+                sim_structural_no_face = sim_structural_no_face[0:i - start_idx]
+                sim_ocr = sim_ocr[0:i - start_idx]
+                break
+        
             timestamps[i - start_idx] = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
 
             curr_frame = cv2.cvtColor(cv2.resize(
@@ -663,16 +671,23 @@ class SvmPoly2(SceneDetectionAlgorithm):
             print("Scene Analysis - Processing from " + str(start_idx) + " to " + str(end_idx))
 
             sema.acquire()
-            args = (video_path, start_idx, end_idx, everyN, start_time)
-            local_result = self.run_as_subprocess(target=self._generate_frame_similarity_batch, args=args)
+            try:
+                args = (video_path, start_idx, end_idx, everyN, start_time)
+                local_result = self.run_as_subprocess(target=self._generate_frame_similarity_batch, args=args)
+                
+                timestamps.extend(local_result[0])
+                sim_structural.extend(local_result[1])
+                sim_structural_no_face.extend(local_result[2])
+                sim_ocr.extend(local_result[3])
             
-            timestamps.extend(local_result[0])
-            sim_structural.extend(local_result[1])
-            sim_structural_no_face.extend(local_result[2])
-            sim_ocr.extend(local_result[3])
+            except Exception as e:
+                print(f"_generate_frame_similarity_batch throwing Exception:" + str(e))
+
             sema.release()
         
-        print("Scene Analysis - " + str(len(timestamps)) + " extracted!")
+        # Correct num_samples according to the real number of frame read
+        num_samples = len(timestamps)
+        print("Scene Analysis - " + str(num_samples) + " extracted!")
 
         t = perf_counter()
         print(
