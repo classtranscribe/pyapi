@@ -91,8 +91,12 @@ class PhraseHinter(AbstractTask):
         self.logger.info(' [%s] PhraseHinter complete!' % video_id)
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
-        self.logger.info(' [%s] PhraseHinter now triggering: TranscriptionTask' % video_id)
-        #emitter.publish(routing_key='TranscriptionTask', body=body)
+        # self.logger.info(' [%s] PhraseHinter now triggering: TranscriptionTask' % video_id)
+        # emitter.publish(routing_key='TranscriptionTask', body=body)
+
+        # Trigger AccessibleGlossary (which will generate description for domain terms)
+        self.logger.info(' [%s] PhraseHinter now triggering: AccessibleGlossary' % video_id)
+        emitter.publish(routing_key='AccessibleGlossary', body=body)
 
         return
 
