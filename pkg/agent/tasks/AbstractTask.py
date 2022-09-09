@@ -22,6 +22,7 @@ class TaskNames(Enum):
     PhraseHinter = 'PhraseHinter'                   # PhraseHinter
     TranscriptionTask = 'TranscriptionTask'         # TranscriptionTask
     # ... Add new tasks here
+    AccessibleGlossary = 'AccessibleGlossary'       # AccessibleGlossary
 
 
 class AbstractTask(ABC):

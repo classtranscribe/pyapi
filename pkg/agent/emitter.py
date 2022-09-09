@@ -31,6 +31,7 @@ class RabbitMqEmitter:
         self.exchange = None
         #self.init_queues()
         self.init_queue('PhraseHinter')
+        self.init_queue('AccessibleGlossary')
 
     def init_exchange(self):
         if RABBITMQ_EXCHANGE != '':
