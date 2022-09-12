@@ -34,6 +34,7 @@ class AccessibleGlossary(AbstractTask):
                 self.logger.info(' [%s] AccessibleGlossary running as READONLY.. term descriptions have not been saved: %s' % (video_id, terms.join('')))
             else:
                 # save generated terms to glossary table in api
+                self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdateGlossary?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps({"Terms": terms, "Descriptions": descriptions}))

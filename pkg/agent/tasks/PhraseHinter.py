@@ -38,6 +38,7 @@ class PhraseHinter(AbstractTask):
                 self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase hints have not been saved: %s' % (video_id, phrase_hints.join('')))
             else:
                 # save generated phrase_hints to video in api
+                self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
                                      headers={'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps(phrase_hints))

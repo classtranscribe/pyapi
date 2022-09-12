@@ -39,6 +39,7 @@ class SceneDetection(AbstractTask):
             if readonly:
                 self.logger.info(' [%s] SceneDetection running as READONLY.. scenes have not been saved' % (video_id))
             else:
+                self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdateSceneData?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps({"Scenes": scenes, "ScenesMetadata": scenes_meta}))

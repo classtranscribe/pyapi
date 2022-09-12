@@ -1,17 +1,22 @@
 import shutil
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from enum import Enum
 import logging
 import os
 import requests
 import time
+import json
 
 import config
 
 
 TARGET_HOST = os.getenv('TARGET_HOST', 'http://api')
 TARGET_HOST_JWT = os.getenv('TARGET_HOST_JWT', 'example')
+LOCAL_SECRET = os.getenv('MEDIA_WORKER_SHARED_SECRET', 'secret')
+
+JWT_UPDATE_INTERVAL = 86400.0 # Period in seconds to update the jwt token
 
 
 # Map task to queuename
@@ -37,7 +42,7 @@ class AbstractTask(ABC):
 
         # TODO: fetch service account jwt (from config / env?)
         self.target_host = TARGET_HOST
-        self.jwt = TARGET_HOST_JWT
+        self.jwt = self.update_jwt()
 
     def rabbitpy_callback(self, message, emitter):
         self.run_timed_task(body=message.json(), emitter=emitter)
@@ -110,3 +115,28 @@ class AbstractTask(ABC):
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             self.logger.error("Failed to fetch videoId=%s: %s" % (video_id, e))
             return None
+    
+    def update_jwt(self):
+        # update jwt token
+        try:
+            print('current time: ' + str(time.mktime(time.gmtime())))
+            if 'JWT_LAST_UPDATE' in os.environ:
+                print('last time: ' + str(os.getenv('TARGET_HOST_JWT')))
+
+            if ('JWT_LAST_UPDATE' not in os.environ) or (time.mktime(time.gmtime()) - float(os.getenv('JWT_LAST_UPDATE')) > JWT_UPDATE_INTERVAL):
+                resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
+                resp.raise_for_status()
+                
+                data = json.loads(resp.text)
+                new_jwt = data['authToken']
+                os.environ['TARGET_HOST_JWT'] = new_jwt
+                os.environ['JWT_LAST_UPDATE'] = str(time.mktime(time.gmtime()))
+
+                self.logger.error("jwt token not set or no longer valid, updated to : %s", new_jwt)
+                return new_jwt
+            
+            else:
+                self.logger.error("No updates to jwt token since it is still valid: %s", os.getenv('TARGET_HOST_JWT'))
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+            self.logger.error("Failed to update jwt token: %s", e)
+            return 'null'
