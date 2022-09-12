@@ -38,6 +38,7 @@ class PhraseHinter(AbstractTask):
                 self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase hints have not been saved: %s' % (video_id, phrase_hints.join('')))
             else:
                 # save generated phrase_hints to video in api
+                self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
                                      headers={'Authorization': 'Bearer %s' % self.jwt},
                                      data=json.dumps(phrase_hints))
@@ -91,8 +92,12 @@ class PhraseHinter(AbstractTask):
         self.logger.info(' [%s] PhraseHinter complete!' % video_id)
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
-        self.logger.info(' [%s] PhraseHinter now triggering: TranscriptionTask' % video_id)
-        #emitter.publish(routing_key='TranscriptionTask', body=body)
+        # self.logger.info(' [%s] PhraseHinter now triggering: TranscriptionTask' % video_id)
+        # emitter.publish(routing_key='TranscriptionTask', body=body)
+
+        # Trigger AccessibleGlossary (which will generate description for domain terms)
+        self.logger.info(' [%s] PhraseHinter now triggering: AccessibleGlossary' % video_id)
+        emitter.publish(routing_key='AccessibleGlossary', body=body)
 
         return
 
