@@ -39,9 +39,9 @@ class PhraseHinter(AbstractTask):
             else:
                 # save generated phrase_hints to video in api
                 self.jwt = self.update_jwt()
-                resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s&phraseHints=%s' % (self.target_host, video_id, phrase_hints),
-                                     headers={'Authorization': 'Bearer %s' % self.jwt},
-                                     data=json.dumps(phrase_hints))
+                resp = requests.post(url='%s/api/Task/UpdatePhraseHints?videoId=%s' % (self.target_host, video_id),
+                                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                     data=json.dumps({"phraseHints": phrase_hints}))
                 resp.raise_for_status()
                 #self.logger.debug(' [%s] PhraseHinter successfully saved phrase hints: %s' % (video_id, phrase_hints))
 

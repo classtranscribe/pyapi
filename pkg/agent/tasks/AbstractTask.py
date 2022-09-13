@@ -124,7 +124,11 @@ class AbstractTask(ABC):
                 print('last time: ' + str(os.getenv('TARGET_HOST_JWT')))
 
             if ('JWT_LAST_UPDATE' not in os.environ) or (time.mktime(time.gmtime()) - float(os.getenv('JWT_LAST_UPDATE')) > JWT_UPDATE_INTERVAL):
-                resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
+                #resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
+                resp = requests.post(url='%s/api/Account/MediaWorkerSignIn' % (TARGET_HOST),
+                                     headers={'Content-Type': 'application/json'},
+                                     data=json.dumps({"access": LOCAL_SECRET}))
+                
                 resp.raise_for_status()
                 
                 data = json.loads(resp.text)
