@@ -127,7 +127,8 @@ class AbstractTask(ABC):
                 #resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
                 resp = requests.post(url='%s/api/Account/MediaWorkerSignIn' % (TARGET_HOST),
                                      headers={'Content-Type': 'application/json'},
-                                     data=json.dumps({"access": LOCAL_SECRET}))
+                                     data={'Access': LOCAL_SECRET}
+                                     )
                 
                 resp.raise_for_status()
                 
