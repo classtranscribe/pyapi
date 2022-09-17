@@ -119,10 +119,6 @@ class AbstractTask(ABC):
     def update_jwt(self):
         # update jwt token
         try:
-            print('current time: ' + str(time.mktime(time.gmtime())))
-            if 'JWT_LAST_UPDATE' in os.environ:
-                print('last time: ' + str(os.getenv('TARGET_HOST_JWT')))
-
             if ('JWT_LAST_UPDATE' not in os.environ) or (time.mktime(time.gmtime()) - float(os.getenv('JWT_LAST_UPDATE')) > JWT_UPDATE_INTERVAL):
                 #resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
                 resp = requests.post(url='%s/api/Account/MediaWorkerSignIn' % (TARGET_HOST),
@@ -143,4 +139,4 @@ class AbstractTask(ABC):
                 self.logger.error("No updates to jwt token since it is still valid: %s", os.getenv('TARGET_HOST_JWT'))
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             self.logger.error("Failed to update jwt token: %s", e)
-            return 'null'
+            return ''
