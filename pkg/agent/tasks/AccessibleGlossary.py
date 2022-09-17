@@ -28,7 +28,7 @@ class AccessibleGlossary(AbstractTask):
 
         try:
             self.logger.info(' [%s] AccessibleGlossary generating term descriptions...' % video_id)
-            terms, descriptions = accessibleglossary.look_up(phrase_hints)
+            glossary = accessibleglossary.look_up(phrase_hints)
 
             if readonly:
                 self.logger.info(' [%s] AccessibleGlossary running as READONLY.. term descriptions have not been saved: %s' % (video_id, terms.join('')))
@@ -37,7 +37,7 @@ class AccessibleGlossary(AbstractTask):
                 self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdateGlossary?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
-                                     data=json.dumps({"Terms": terms, "Descriptions": descriptions}))
+                                     data=json.dumps({"Glossary": glossary}))
                 resp.raise_for_status()
 
             return video
