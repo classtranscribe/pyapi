@@ -2,7 +2,7 @@ FROM python:3-slim
 
 # Install OS dependencies
 RUN apt-get -qq update && \
-    apt-get -qq install --no-install-recommends netcat curl git wget ffmpeg build-essential libsm6 libxext6 libxrender-dev automake libtool pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev && \
+    apt-get -qq install --no-install-recommends vim-tiny netcat curl git wget ffmpeg build-essential libsm6 libxext6 libxrender-dev automake libtool pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev && \
     apt-get -qq clean autoclean && \
     apt-get -qq autoremove && \
     rm -rf /var/lib/apt/lists/*
