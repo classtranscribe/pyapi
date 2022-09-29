@@ -6,7 +6,8 @@ from nltk.corpus import wordnet as wn
 logger = logging.getLogger('pkg.agent.tasks.lib.accessibleglossary')
 wiki_en = wikipediaapi.Wikipedia('en')
 
-PREFIXES = ['Dr', 'Gov', 'Miss', 'Mr', 'Mrs', 'Ms', 'Pres', 'Prof', 'Rep', 'Jr', 'Sr']
+PREFIXES = ['Dr', 'Gov', 'Miss', 'Mr', 'Mrs', 'Ms', 'Pres', 'Prof', 'Rep', 
+            'Jr', 'Sr', 'Esq', 'Hon', 'Messrs', 'Mmes', 'Msgr', 'Rev', 'Sr', 'Rt']
 
 def look_up_wordnet(term):
     '''
@@ -37,12 +38,23 @@ def first_valid_period(sentence, prefixes=PREFIXES):
     prev_1 = sentence[first_period - 1] if first_period - 1 >= 0 else ''
     prev_2 = sentence[first_period - 2] if first_period - 2 >= 0 else ''
     next_1 = sentence[first_period + 1] if first_period + 1 < len(sentence) else ''
+    
+    prev_1 = prev_1.lower()
+    prev_2 = prev_2.lower()
+    next_1 = next_1.lower()
+    
     if next_1 == 'm' and (prev_1 == 'a' or prev_1 == 'p'):
         return first_period + 1 + first_valid_period(sentence[first_period + 1 :], prefixes)
     if prev_1 == 'm' and prev_2 == '':
         return first_period + 1 + first_valid_period(sentence[first_period + 1 :], prefixes)
     
     return first_period
+
+sentence1 = 'Mr. Eric is gently playing the guitar. He was enjoying the music.'
+assert sentence1[0 : first_valid_period(sentence1) + 1] == 'Mr. Eric is gently playing the guitar.'
+
+sentence2 = 'It is now 5:00 P.M. Let get sterted for dinner. Where are we going?'
+assert sentence2[0 : first_valid_period(sentence2) + 1] == 'It is now 5:00 P.M. Let get sterted for dinner.'
 
 def get_one_sentence_and_url(term):
     if wiki_en.page(term).exists() == False:
@@ -56,6 +68,9 @@ def get_one_sentence_and_url(term):
         return 'Ambiguous meaning', url
     
     return sentence, url
+
+_, url1 = get_one_sentence_and_url('People')
+assert url1 == 'https://en.wikipedia.org/wiki/People'
 
 def get_domain_wiki(raw_results):
     domains = []
@@ -77,6 +92,10 @@ def get_domain_wiki(raw_results):
             filtered_results.append(entry)
             
     return domains, filtered_results
+
+search_results1 = wikipedia.search('java').copy()
+_, filtered_results1 = get_domain_wiki(search_results1)
+assert filtered_results1[0].lower() == 'java'
 
 def look_up_wiki(term):
     integrated_result = []
