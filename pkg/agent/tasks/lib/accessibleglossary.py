@@ -69,9 +69,6 @@ def get_one_sentence_and_url(term):
     
     return sentence, url
 
-_, url1 = get_one_sentence_and_url('People')
-assert url1 == 'https://en.wikipedia.org/wiki/People'
-
 def get_domain_wiki(raw_results):
     domains = []
     filtered_results = []
@@ -93,10 +90,6 @@ def get_domain_wiki(raw_results):
             
     return domains, filtered_results
 
-search_results1 = wikipedia.search('java').copy()
-_, filtered_results1 = get_domain_wiki(search_results1)
-assert filtered_results1[0].lower() == 'java'
-
 def look_up_wiki(term):
     integrated_result = []
     search_results = wikipedia.search(term).copy()
@@ -108,12 +101,12 @@ def look_up_wiki(term):
     for i in range(min(2, len(filtered_results))):
         formated_term = '_'.join(filtered_results[i].split(' '))
         sentence, url = get_one_sentence_and_url(formated_term)
-        integrated_result.append([filtered_results[i], sentence, 'General', 'Wikipedia', url])
+        integrated_result.append([filtered_results[i], sentence, 'General', 'Wikipedia', 'CC BY-SA', url])
 
     for domain in domains:
         formated_term = term + '_(' + '_'.join(domain.split(' ')) + ')'
         sentence, url = get_one_sentence_and_url(formated_term)
-        integrated_result.append([wiki_term, sentence, domain, 'Wikipedia', url])
+        integrated_result.append([wiki_term, sentence, domain, 'Wikipedia', 'CC BY-SA', url])
         
     return integrated_result
 
@@ -123,8 +116,5 @@ def look_up(phrase_hints):
     glossary = []
     for term in raw_terms:
         glossary.extend(look_up_wiki(term))
-
-    for i in range(len(glossary)):
-        print(str(glossary[i][0]) + ' -> ' + str(glossary[i][1]) + ' -> ' + str(glossary[i][2]))
 
     return glossary

@@ -40,6 +40,41 @@ class AccessibleGlossary(AbstractTask):
                                      data=json.dumps({"Glossary": glossary}))
                 resp.raise_for_status()
 
+                # fetch offeringId for from videoId
+                resp = requests.get(url='%s/api/Playlists/ByVideo/%s' % (self.target_host, video_id),
+                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                resp.raise_for_status()
+                data = json.loads(resp.text)
+                offeringId = data['offeringId']
+                print(offeringId)
+
+                # fetch courseId for from offeringId
+                resp = requests.get(url='%s/api/CourseOfferings/ByOffering/%s' % (self.target_host, offeringId),
+                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                resp.raise_for_status()
+                data = json.loads(resp.text)
+                courseId = data['id']
+                print(courseId)
+
+                # save glossary to the glossary table
+                for g in glossary:
+                    resp = requests.post(url='%s/api/Glossary' % (self.target_host),
+                                        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                        data=json.dumps({
+                                            "term": g[0],
+                                            "link": g[5],
+                                            "description": g[1],
+                                            "source": g[3],
+                                            "licenseTag": g[4],
+                                            "domain": g[2],
+                                            "likes": 0,
+                                            "shared": True,
+                                            "editable": True,
+                                            "courseId": courseId,
+                                            "offeringId": offeringId
+                                        }))
+                    resp.raise_for_status()
+
             return video
         except Exception as e:
             self.logger.error(
