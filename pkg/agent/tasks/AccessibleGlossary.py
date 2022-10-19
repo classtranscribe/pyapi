@@ -46,7 +46,6 @@ class AccessibleGlossary(AbstractTask):
                 resp.raise_for_status()
                 data = json.loads(resp.text)
                 offeringId = data['offeringId']
-                print(offeringId)
 
                 # fetch courseId for from offeringId
                 resp = requests.get(url='%s/api/CourseOfferings/ByOffering/%s' % (self.target_host, offeringId),
@@ -54,7 +53,6 @@ class AccessibleGlossary(AbstractTask):
                 resp.raise_for_status()
                 data = json.loads(resp.text)
                 courseId = data['id']
-                print(courseId)
 
                 # save glossary to the glossary table
                 for g in glossary:
