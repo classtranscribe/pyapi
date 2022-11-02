@@ -29,7 +29,7 @@ marshmallow-sqlalchemy==0.27.0
 marshmallow==3.14.1
 flask-marshmallow==0.14.0
 SQLAlchemy==1.4.31
-psycopg2-binary==2.9.3
+psycopg2-binary==2.9.5
 
 # RabbitMQ
 pika==1.2.0
