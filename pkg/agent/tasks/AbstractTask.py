@@ -28,6 +28,7 @@ class TaskNames(Enum):
     TranscriptionTask = 'TranscriptionTask'         # TranscriptionTask
     # ... Add new tasks here
     AccessibleGlossary = 'AccessibleGlossary'       # AccessibleGlossary
+    PythonCrawler = 'PythonCrawler'                 # PythonCrawler
 
 
 class AbstractTask(ABC):
