@@ -53,3 +53,6 @@ sklearn==0.0
 # glossary
 wikipedia-api==0.5.4
 wikipedia==1.4.0
+
+# asl crawler
+bs4==0.0.1

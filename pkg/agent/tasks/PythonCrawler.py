@@ -4,8 +4,7 @@ import requests
 import time
 
 from .AbstractTask import AbstractTask, TaskNames
-
-#from pkg.agent.tasks.lib import accessibleglossary
+from pkg.agent.tasks.lib import accessiblecrawler
 
 class PythonCrawler(AbstractTask):
 
@@ -20,6 +19,12 @@ class PythonCrawler(AbstractTask):
         force = parameters.get('Force', False)
         readonly = parameters.get('ReadOnly', False)
         self.logger.info(' [%s] PythonCrawler started on sourceId=%s...' % (source_id, source_id))
+
+        raw_glossaries = accessiblecrawler.extract_raw_glossaries(source_id)
+        for g in raw_glossaries:
+            for entry in g:
+                print(entry)
+            print('')
 
         self.logger.info(' [%s] PythonCrawler complete!' % source_id)
 
