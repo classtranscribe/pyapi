@@ -117,6 +117,19 @@ class AbstractTask(ABC):
             self.logger.error("Failed to fetch videoId=%s: %s" % (video_id, e))
             return None
     
+    def get_scene(self, video_id):
+        # fetch scene data by id
+        try:
+            resp = requests.get(url='%s/api/Task/GetSceneData?videoId=%s' % (self.target_host, video_id),
+                                headers={'Authorization': 'Bearer %s' % self.jwt})
+            # self.logger.debug(' [%s] SceneDetection fetched video: %s' % (video_id, resp.text))
+            resp.raise_for_status()
+            scene = resp.json()
+            return scene
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+            self.logger.error("Failed to fetch videoId=%s: %s" % (video_id, e))
+            return None
+    
     def update_jwt(self):
         # update jwt token
         try:
