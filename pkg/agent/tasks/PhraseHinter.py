@@ -13,12 +13,15 @@ VIDEO_PHRASEHINTS_KEY = 'phrase_hints'
 VIDEO_PHRASES_KEY = 'all_phrases'
 SCENE_PHRASES_KEY = 'phrases'
 
+VIDEO_SCENE_ID = 'SceneObjectDataId'
+VIDEO_PH_ID = 'PhraseHintDataId'
+
 class PhraseHinter(AbstractTask):
 
     @staticmethod
     def get_name():
         return TaskNames.PhraseHinter
-
+    
     def generate_phrase_hints(self, video_id, video, scenes, readonly):
         # Gather raw phrases from scenes
         self.logger.info(' [%s] PhraseHinter gathering raw phrases...' % video_id)
@@ -65,9 +68,10 @@ class PhraseHinter(AbstractTask):
 
         # fetch video metadata by id to get path
         video = self.get_video(video_id=video_id)
+        
 
         # short-circuit if we already have phrase hints
-        if not force and VIDEO_PHRASEHINTS_KEY in video and video[VIDEO_PHRASEHINTS_KEY]:
+        if not force and VIDEO_SCENE_ID in video and video[VIDEO_SCENE_ID]:
             # TODO: trigger TranscriptionTask
             self.logger.warning(' [%s] Skipping PhraseHinter: phraseHints already exist' % video_id)
             return
@@ -77,18 +81,13 @@ class PhraseHinter(AbstractTask):
             return
 
         # TODO: Check for empty scenes / error-handling
-        scenes = video[VIDEO_SCENEDATA_KEY]['Scenes']
+        scenes = self.get_scene(video_id=video_id)['Scenes']
         # scenes = json.loads(body.get('Scenes', '[]'))
         if len(scenes) == 0:
             self.logger.error(' [%s] PhraseHinter FAILED for videoId=%s: no scenes found' % (video_id, video_id))
 
         #self.logger.debug("Scenes fetched: %s" % scenes)
         phrases = self.generate_phrase_hints(video_id, video, scenes, readonly)
-
-        if video is None:
-            self.logger.error(' [%s] PhraseHinter FAILED for videoId=%s: to_phrase_hints failed' % (video_id, video_id))
-            return
-
         self.logger.info(' [%s] PhraseHinter complete!' % video_id)
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
@@ -96,8 +95,8 @@ class PhraseHinter(AbstractTask):
         # emitter.publish(routing_key='TranscriptionTask', body=body)
 
         # Trigger AccessibleGlossary (which will generate description for domain terms)
-        self.logger.info(' [%s] PhraseHinter now triggering: AccessibleGlossary' % video_id)
-        emitter.publish(routing_key='AccessibleGlossary', body=body)
+        # self.logger.info(' [%s] PhraseHinter now triggering: AccessibleGlossary' % video_id)
+        # emitter.publish(routing_key='AccessibleGlossary', body=body)
 
         return
 
