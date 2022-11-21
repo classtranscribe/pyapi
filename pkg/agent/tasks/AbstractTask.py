@@ -65,11 +65,11 @@ class AbstractTask(ABC):
         # file not found? attempt to fetch it
         if config.DOWNLOAD_MISSING_VIDEOS and not os.path.exists(file_path):
             # fetch video file using static data path
-            self.logger.info(' [%s] SceneDetection attempting to download video data locally: %s' % (video_id, file_path))
+            self.logger.info(' [%s] Attempting to download video data locally: %s' % (video_id, file_path))
             try:
                 with requests.get('%s%s' % (self.target_host, file_path), headers={'Referer': self.target_host}, stream=True) as r:
                     r.raise_for_status()
-                    self.logger.info(' [%s] SceneDetection now downloading video data locally: %s' % (video_id, file_path))
+                    self.logger.info(' [%s] Now downloading video data locally: %s' % (video_id, file_path))
 
                     # make sure that destination directory exists
                     data_dirname = os.path.dirname(file_path)
@@ -95,11 +95,11 @@ class AbstractTask(ABC):
                     return True
             except Exception as e:
                 self.logger.error(
-                    ' [%s] SceneDetection failed to fetch video when DOWNLOAD_MISSING_VIDEOS=True: %s' % (
+                    ' [%s] Failed to fetch video when DOWNLOAD_MISSING_VIDEOS=True: %s' % (
                     video_id, str(e)))
                 return False
         elif os.path.exists(file_path):
-            self.logger.error(' [%s] SceneDetection using local video file (DOWNLOAD_MISSING_VIDEOS=False): %s' % (video_id, file_path))
+            self.logger.error(' [%s] Using local video file (DOWNLOAD_MISSING_VIDEOS=False): %s' % (video_id, file_path))
             return True
 
         return False
@@ -150,7 +150,7 @@ class AbstractTask(ABC):
                 return new_jwt
             
             else:
-                self.logger.error("No updates to jwt token since it is still valid: %s", os.getenv('TARGET_HOST_JWT'))
+                self.logger.error("No updates to jwt token since it is still valid")
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             self.logger.error("Failed to update jwt token: %s", e)
             return ''
