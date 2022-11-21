@@ -8,7 +8,7 @@ jsonschema==3.2.0
 Jinja2
 
 # ai/sci tools
-numpy==1.22.3
+numpy==1.23.5
 pytesseract==0.3.9
 opencv-python==4.5.5.64
 decord==0.6.0
@@ -29,7 +29,7 @@ marshmallow-sqlalchemy==0.27.0
 marshmallow==3.14.1
 flask-marshmallow==0.14.0
 SQLAlchemy==1.4.31
-psycopg2-binary==2.9.3
+psycopg2-binary==2.9.5
 
 # RabbitMQ
 pika==1.2.0
@@ -52,3 +52,7 @@ sklearn==0.0
 
 # glossary
 wikipedia-api==0.5.4
+wikipedia==1.4.0
+
+# asl crawler
+bs4==0.0.1

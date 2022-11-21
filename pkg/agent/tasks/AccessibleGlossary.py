@@ -28,7 +28,7 @@ class AccessibleGlossary(AbstractTask):
 
         try:
             self.logger.info(' [%s] AccessibleGlossary generating term descriptions...' % video_id)
-            terms, descriptions = accessibleglossary.look_up(phrase_hints)
+            glossary = accessibleglossary.look_up(phrase_hints)
 
             if readonly:
                 self.logger.info(' [%s] AccessibleGlossary running as READONLY.. term descriptions have not been saved: %s' % (video_id, terms.join('')))
@@ -37,8 +37,41 @@ class AccessibleGlossary(AbstractTask):
                 self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdateGlossary?videoId=%s' % (self.target_host, video_id),
                                      headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
-                                     data=json.dumps({"Terms": terms, "Descriptions": descriptions}))
+                                     data=json.dumps({"Glossary": glossary}))
                 resp.raise_for_status()
+
+                # fetch offeringId for from videoId
+                resp = requests.get(url='%s/api/Playlists/ByVideo/%s' % (self.target_host, video_id),
+                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                resp.raise_for_status()
+                data = json.loads(resp.text)
+                offeringId = data['offeringId']
+
+                # fetch courseId for from offeringId
+                resp = requests.get(url='%s/api/CourseOfferings/ByOffering/%s' % (self.target_host, offeringId),
+                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                resp.raise_for_status()
+                data = json.loads(resp.text)
+                courseId = data['id']
+
+                # save glossary to the glossary table
+                for g in glossary:
+                    resp = requests.post(url='%s/api/Glossary' % (self.target_host),
+                                        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                        data=json.dumps({
+                                            "term": g[0],
+                                            "link": g[5],
+                                            "description": g[1],
+                                            "source": g[3],
+                                            "licenseTag": g[4],
+                                            "domain": g[2],
+                                            "likes": 0,
+                                            "shared": True,
+                                            "editable": True,
+                                            "courseId": courseId,
+                                            "offeringId": offeringId
+                                        }))
+                    resp.raise_for_status()
 
             return video
         except Exception as e:

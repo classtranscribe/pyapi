@@ -31,8 +31,9 @@ WORKDIR /usr/app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Additional dependencies for brown corpus/stopwords
+# Additional dependencies for brown corpus/stopwords, wordnet
 RUN python -m nltk.downloader brown stopwords
+RUN python -m nltk.downloader wordnet omw-1.4
 
 # Copy in Python source
 COPY . .
