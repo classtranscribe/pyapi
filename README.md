@@ -2,6 +2,14 @@
 
 Powered by Flask + Connexion + SQLAlchemy
 
+## Build Status
+
+| Branch | Status |
+|-------:|--------|
+| Production | ![Production](https://github.com/classtranscribe/pyapi/actions/workflows/docker.yml/badge.svg?event=push&branch=main) |
+| Staging | ![Staging](https://github.com/classtranscribe/pyapi/actions/workflows/docker.yml/badge.svg?event=push&branch=staging) |
+| Experiment | ![Experiment](https://github.com/classtranscribe/pyapi/actions/workflows/docker.yml/badge.svg?event=push&branch=expt) |
+​
 ## Configuration
 Environment variables can be used to set the configuration.
 
