@@ -107,8 +107,12 @@ class AbstractTask(ABC):
     def get_video(self, video_id):
         # fetch video metadata by id
         try:
-            resp = requests.get(url='%s/api/Task/Video?videoId=%s' % (self.target_host, video_id),
-                                headers={'Authorization': 'Bearer %s' % self.jwt})
+            #resp = requests.get(url='%s/api/Task/Video?videoId=%s' % (self.target_host, video_id),
+            #                    headers={'Authorization': 'Bearer %s' % self.jwt})
+            resp = requests.get(f'{self.target_host}/api/Task/Video', 
+                                headers={'Authorization': 'Bearer %s' % self.jwt},
+                                params={'videoId':video_id})
+
             # self.logger.debug(' [%s] SceneDetection fetched video: %s' % (video_id, resp.text))
             resp.raise_for_status()
             video = resp.json()
@@ -120,8 +124,12 @@ class AbstractTask(ABC):
     def get_scene(self, video_id):
         # fetch scene data by id
         try:
-            resp = requests.get(url='%s/api/Task/GetSceneData?videoId=%s' % (self.target_host, video_id),
-                                headers={'Authorization': 'Bearer %s' % self.jwt})
+            #resp = requests.get(url='%s/api/Task/GetSceneData?videoId=%s' % (self.target_host, video_id),
+            #                    headers={'Authorization': 'Bearer %s' % self.jwt})
+            resp = requests.get(f'{self.target_host}/api/Task/GetSceneData', 
+                                headers={'Authorization': 'Bearer %s' % self.jwt}, 
+                                params={'videoId':video_id})
+
             # self.logger.debug(' [%s] SceneDetection fetched video: %s' % (video_id, resp.text))
             resp.raise_for_status()
             scene = resp.json()
@@ -134,10 +142,8 @@ class AbstractTask(ABC):
         # update jwt token
         try:
             if ('JWT_LAST_UPDATE' not in os.environ) or (time.mktime(time.gmtime()) - float(os.getenv('JWT_LAST_UPDATE')) > JWT_UPDATE_INTERVAL):
-                #resp = requests.get(url='%s/api/Account/MediaWorkerSignIn?access=%s' % (TARGET_HOST, LOCAL_SECRET))
-                resp = requests.post(url='%s/api/Account/MediaWorkerSignIn' % (TARGET_HOST),
-                                     data={'Access': LOCAL_SECRET}
-                                     )
+                resp = requests.post(f'{self.target_host}/api/Account/MediaWorkerSignIn', 
+                                     data={'Access': LOCAL_SECRET})
                 
                 resp.raise_for_status()
                 
@@ -146,7 +152,7 @@ class AbstractTask(ABC):
                 os.environ['TARGET_HOST_JWT'] = new_jwt
                 os.environ['JWT_LAST_UPDATE'] = str(time.mktime(time.gmtime()))
 
-                self.logger.error("jwt token not set or no longer valid, updated to : %s", new_jwt)
+                self.logger.error("jwt token not set or no longer valid, updated")
                 return new_jwt
             
             else:
