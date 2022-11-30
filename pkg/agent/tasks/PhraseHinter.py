@@ -96,7 +96,7 @@ class PhraseHinter(AbstractTask):
 
         # Trigger AccessibleGlossary (which will generate description for domain terms)
         # self.logger.info(' [%s] PhraseHinter now triggering: AccessibleGlossary' % video_id)
-        # emitter.publish(routing_key='AccessibleGlossary', body=body)
+        emitter.publish(routing_key='AccessibleGlossary', body=body)
 
         return
 
