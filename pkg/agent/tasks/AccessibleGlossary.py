@@ -10,6 +10,9 @@ from pkg.agent.tasks.lib import accessibleglossary
 VIDEO_GLOSSARY_KEY = 'glossary'
 VIDEO_PHRASEHINTS_KEY = 'phraseHints'
 
+VIDEO_SCENE_ID = 'SceneObjectDataId'
+VIDEO_PH_ID = 'PhraseHintDataId'
+
 class AccessibleGlossary(AbstractTask):
 
     @staticmethod
@@ -92,7 +95,8 @@ class AccessibleGlossary(AbstractTask):
         video = self.get_video(video_id=video_id)
 
         # short-circuit if we already have phrase hints
-        if not force and VIDEO_GLOSSARY_KEY in video and video[VIDEO_GLOSSARY_KEY]:
+        # if not force and VIDEO_GLOSSARY_KEY in video and video[VIDEO_GLOSSARY_KEY]:
+        if not force and VIDEO_PH_ID in video and video[VIDEO_PH_ID]:
             # TODO: trigger TranscriptionTask
             self.logger.warning(' [%s] Skipping AccessibleGlossary: glossary already exist' % video_id)
             return
@@ -102,7 +106,9 @@ class AccessibleGlossary(AbstractTask):
             return
 
         # TODO: Check for empty phrases / error-handling
-        phrases = video[VIDEO_PHRASEHINTS_KEY]
+        # phrases = video[VIDEO_PHRASEHINTS_KEY]
+        phrases = self.get_phrase_hints(video_id=video_id)
+
         if len(phrases) == 0:
             self.logger.error(' [%s] AccessibleGlossary FAILED for videoId=%s: no detected phrases found' % (video_id, video_id))
 

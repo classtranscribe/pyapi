@@ -138,6 +138,20 @@ class AbstractTask(ABC):
             self.logger.error("Failed to fetch videoId=%s: %s" % (video_id, e))
             return None
     
+    def get_phrase_hints(self, video_id):
+        # fetch phrase data by id
+        try:
+            resp = requests.get(f'{self.target_host}/api/Task/GetPhraseHints', 
+                                headers={'Authorization': 'Bearer %s' % self.jwt}, 
+                                params={'videoId':video_id})
+
+            resp.raise_for_status()
+            phrase = resp.text
+            return phrase
+        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
+            self.logger.error("Failed to fetch videoId=%s: %s" % (video_id, e))
+            return None
+    
     def update_jwt(self):
         # update jwt token
         try:
