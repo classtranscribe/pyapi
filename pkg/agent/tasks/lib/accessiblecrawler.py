@@ -11,4 +11,8 @@ def extract_raw_glossaries(source_id):
     elif source_id == '2':
         raw_glossaries.extend(deaftec.crawler())
     
+    # Download only the first two entries
+    elif source_id == 't':
+        raw_glossaries.extend(aslcore.crawler())
+    
     return raw_glossaries

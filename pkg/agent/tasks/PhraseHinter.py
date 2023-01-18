@@ -48,10 +48,48 @@ class PhraseHinter(AbstractTask):
                 resp.raise_for_status()
                 #self.logger.debug(' [%s] PhraseHinter successfully saved phrase hints: %s' % (video_id, phrase_hints))
 
-            return video
+            return phrase_hints
         except Exception as e:
             self.logger.error(
                 ' [%s] PhraseHinter failed to detect scenes in videoId=%s: %s' % (video_id,
+                    video_id, str(e)))
+            return
+
+    def generate_phrase_timestamps(self, video_id, video, scenes, phrase_hints, readonly):
+        # Gather phrases and timestamps from scenes
+        self.logger.info(' [%s] PhraseHinter gathering phrases and timestamps...' % video_id)
+        
+        try:
+            phrase_timestamps = dict()
+
+            phrase_hints = phrase_hints.splitlines()
+            for scene in scenes:
+                for hint in phrase_hints:
+                    existed = False
+                    for phrase in scene['phrases']:
+                        if hint in phrase:
+                            existed = True
+                            break
+                    
+                    if existed:
+                        if hint not in phrase_timestamps:
+                            phrase_timestamps[hint] = []
+                        phrase_timestamps[hint].append( (scene['start'], scene['end'], 1) )
+
+            if readonly:
+                self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase_timestamps have not been saved' % (video_id))
+            else:
+                # save generated phrase_timestamps to video in api
+                self.jwt = self.update_jwt()
+                resp = requests.post(url='%s/api/Task/UpdateGlossaryTimestamp?videoId=%s' % (self.target_host, video_id),
+                                        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                        data=json.dumps({"glossaryTimestamp": phrase_timestamps}))
+                resp.raise_for_status()
+
+                return phrase_timestamps
+        except Exception as e:
+            self.logger.error(
+                ' [%s] PhraseHinter failed to generate phrase_timestamps in videoId=%s: %s' % (video_id,
                     video_id, str(e)))
             return
 
@@ -87,7 +125,9 @@ class PhraseHinter(AbstractTask):
             self.logger.error(' [%s] PhraseHinter FAILED for videoId=%s: no scenes found' % (video_id, video_id))
 
         #self.logger.debug("Scenes fetched: %s" % scenes)
-        phrases = self.generate_phrase_hints(video_id, video, scenes, readonly)
+        phrase_hints = self.generate_phrase_hints(video_id, video, scenes, readonly)
+        phrase_timestamps = self.generate_phrase_timestamps(video_id, video, scenes, phrase_hints, readonly)
+
         self.logger.info(' [%s] PhraseHinter complete!' % video_id)
 
         # Trigger TranscriptionTask (which will generate captions in various languages)
