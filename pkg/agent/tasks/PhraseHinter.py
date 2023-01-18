@@ -26,7 +26,6 @@ class PhraseHinter(AbstractTask):
         # Gather raw phrases from scenes
         self.logger.info(' [%s] PhraseHinter gathering raw phrases...' % video_id)
         all_phrases = [str(scene[SCENE_PHRASES_KEY]) for scene in scenes]
-        print(all_phrases)
         # video[VIDEO_PHRASES_KEY] = all_phrases
         self.logger.debug(' [%s] PhraseHinter found phrases' % (video_id))
 
