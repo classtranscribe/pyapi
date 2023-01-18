@@ -39,20 +39,20 @@ class AccessibleGlossary(AbstractTask):
                 # save generated terms to glossary table in api
                 self.jwt = self.update_jwt()
                 resp = requests.post(url='%s/api/Task/UpdateGlossary?videoId=%s' % (self.target_host, video_id),
-                                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
-                                     data=json.dumps({"Glossary": glossary}))
+                                    headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                    data=json.dumps({"Glossary": glossary}))
                 resp.raise_for_status()
 
                 # fetch offeringId for from videoId
                 resp = requests.get(url='%s/api/Playlists/ByVideo/%s' % (self.target_host, video_id),
-                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                                    headers={'Authorization': 'Bearer %s' % self.jwt})
                 resp.raise_for_status()
                 data = json.loads(resp.text)
                 offeringId = data['offeringId']
 
                 # fetch courseId for from offeringId
                 resp = requests.get(url='%s/api/CourseOfferings/ByOffering/%s' % (self.target_host, offeringId),
-                                     headers={'Authorization': 'Bearer %s' % self.jwt})
+                                    headers={'Authorization': 'Bearer %s' % self.jwt})
                 resp.raise_for_status()
                 data = json.loads(resp.text)
                 courseId = data['id']
@@ -75,6 +75,26 @@ class AccessibleGlossary(AbstractTask):
                                             "offeringId": offeringId
                                         }))
                     resp.raise_for_status()
+                    data = json.loads(resp.text)
+                    glossary_id = data['id']
+
+                    # Connect Glossary to ASLVideos
+                    resp = requests.get(f'{self.target_host}/api/ASLVideo/GetASLVideosByTerm', 
+                                    headers={'Authorization': 'Bearer %s' % self.jwt}, 
+                                    params={'term' : g[0]})
+                    resp.raise_for_status()
+                    # data is a list
+                    data = json.loads(resp.text)
+
+                    for asl in data:
+                        resp = requests.post(url='%s/api/ASLVideoGlossaryMap' % (self.target_host),
+                                        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
+                                        data=json.dumps({
+                                            "glossaryId": glossary_id,
+                                            "aslVideoId": asl['id'],
+                                            "published": True
+                                        }))
+                        resp.raise_for_status()
 
             return video
         except Exception as e:
