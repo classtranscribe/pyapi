@@ -13,7 +13,10 @@ class TranscriptionTask(AbstractTask):
         return "TranscriptionTask"
 
     def transcribe(self, video_id, video, language, model):
-        
+        # TODO check video fetching and extract audio
+        model = whisper.load_model(model)
+        transcription = whisper.transcribe(model=model, audio=audio_filepath, verbose=True)
+        return transcription
 
     def run_task(self, body, emitter):
         video_id = body['video_id']
@@ -43,8 +46,3 @@ class TranscriptionTask(AbstractTask):
             return
 
         transcription = self.transcribe(video_id, video, language, model)
-
-
-
-
-
