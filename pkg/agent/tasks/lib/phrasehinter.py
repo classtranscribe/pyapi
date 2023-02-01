@@ -118,7 +118,7 @@ def get_stop_words_set():
     return _stop_words_set
 
 
-def filter_common_corpus_words(words_count, scale_factor=300):
+def filter_common_corpus_words(words_count, scale_factor=10):
     """
     A function that removes the words in phrase dictionary that has a frequency lower than its
     frequency in the Brown corpus. Returns a phrase list after the removals.
@@ -343,8 +343,11 @@ def to_phrase_hints(raw_phrases):
             result[i] = ' '.join(splitted_phrase)
 
         logger.info("remove all single character phrase")
-        # Remove all single character phrase
-        result = [phrase for phrase in result if len(phrase) > 1]
+        # Remove phrase of length 1 and 2
+        result = [phrase for phrase in result if len(phrase) > 2]
+        
+        # Remove phrase that contains only digits
+        result = [phrase for phrase in result if not phrase.isnumeric()]
 
         logger.info(f"final_length: {len(result)}")
         #logger.debug(f"result: {result}")
