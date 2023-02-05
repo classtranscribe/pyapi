@@ -31,17 +31,21 @@ def extract_glossary_timestamps(scenes, phrases):
         
         glossary_in_scenes.append(glossary_in_scene)
     
-    start_time = scenes[0]['start']
-    end_time = scenes[0]['end']
     for i in range(len(glossary_in_scenes)):
-        end_time = scenes[i]['end']
         if len(glossary_in_scenes[i]) <= 0:
             continue
-            
+        
+        num_scene_phrases = len(glossary_in_scenes[i])
         glossary_in_scene = glossary_in_scenes[i]
+        
+        start_time = parse_timestamp(scenes[i]['start'])
+        end_time = parse_timestamp(scenes[i]['end'])
+        interval = (end_time - start_time) / num_scene_phrases
+        
+        curr_time = start_time
         for phrase in glossary_in_scene:
-            phrase_timestamps[phrase] = (start_time, end_time)
-        start_time = scenes[i]['end']
+            phrase_timestamps[phrase] = (parse_second(curr_time), parse_second(curr_time + interval))
+            curr_time += interval
     
     return phrase_timestamps
     
