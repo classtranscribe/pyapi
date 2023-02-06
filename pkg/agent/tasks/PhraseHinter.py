@@ -5,6 +5,7 @@ import requests
 from .AbstractTask import AbstractTask, TaskNames
 
 from pkg.agent.tasks.lib import phrasehinter
+from pkg.agent.tasks.lib import glossarytimestamp
 
 
 VIDEO_SCENEDATA_KEY = 'sceneData'
@@ -60,21 +61,8 @@ class PhraseHinter(AbstractTask):
         self.logger.info(' [%s] PhraseHinter gathering phrases and timestamps...' % video_id)
         
         try:
-            phrase_timestamps = dict()
-
             phrase_hints = phrase_hints.splitlines()
-            for scene in scenes:
-                for hint in phrase_hints:
-                    existed = False
-                    for phrase in scene['phrases']:
-                        if hint in phrase:
-                            existed = True
-                            break
-                    
-                    if existed:
-                        if hint not in phrase_timestamps:
-                            phrase_timestamps[hint] = []
-                        phrase_timestamps[hint].append( (scene['start'], scene['end'], 1) )
+            phrase_timestamps = glossarytimestamp.extract_glossary_timestamps(scenes, phrase_hints)
 
             if readonly:
                 self.logger.info(' [%s] PhraseHinter running as READONLY.. phrase_timestamps have not been saved' % (video_id))
