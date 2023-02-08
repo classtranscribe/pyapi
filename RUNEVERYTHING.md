@@ -11,15 +11,25 @@ mkdir ClassTranscribe
 cd ClassTranscribe
 ```
 
-Checkout the 3 main projects of ClassTranscribe, FrontEnd,WebAPI and pyapi
+Checkout the 3 main projects of ClassTranscribe, FrontEnd,WebAPI and pyapi. On Mac/Linux,
 ```sh
-#Choose your prefered way to clone the project...
+#Choose your preferred way to authenticate and clone the project...
 BASE=git@github.com:classtranscribe
-BASE=https://github.com/classtranscribe/
+BASE=https://github.com/classtranscribe
 
 git clone $BASE/FrontEnd.git
 git clone $BASE/WebAPI.git
 git clone $BASE/pyapi.git
+```
+Or in Windows,
+```sh
+REM Choose your preferred way to authenticate and clone the project...
+set BASE=git@github.com:classtranscribe
+set BASE=https://github.com/classtranscribe
+
+git clone %BASE%/FrontEnd.git
+git clone %BASE%/WebAPI.git
+git clone %BASE%/pyapi.git
 ```
 
 Unzip the docker compose files (docker-compose.yml and docker-compose.override.yml) and initial environment files (.env). 
@@ -30,14 +40,21 @@ These files are provided as a zip file because you will probably want to edit th
 cd pyapi
 unzip devdocker.zip
 ```
-Change into the devdocker directory and review these files. For example the .env file sets the port for the frontend
+Change into the devdocker directory 
+```
+cd devdocker
+ls
+```
+
+and review these files. For example the .env file sets the port for the frontend
 ```txt
 TRAEFIK_HTTP_PORT=80
 TRAEFIK_HTTPS_PORT=443
 ```
 
-Pull the pre-made docker images from docker hub
+Pull the pre-made docker images from docker hub.
 ```sh
+# You must be in the devdocker directory with the docker-compose files etc.
 docker compose pull
 ```
 To save time you can use the premade images for api, frontend and pyapi already on dockerhub.
