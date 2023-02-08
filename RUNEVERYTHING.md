@@ -60,7 +60,12 @@ docker compose up -d
 ```
 Look at the logs of one or all containers
 ```sh
+# Check the status of all of the containers
+docker compose ps
+# Look at the last 4 lines of pyapi
 docker compose logs --tail=4 pyapi
 # Or all containers
 docker compose logs --tail=4
+# Or follow the output with a timestamp
+docker compose logs -tf --tail=4
 ```
