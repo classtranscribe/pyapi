@@ -30,7 +30,11 @@ These files are provided as a zip file because you will probably want to edit th
 cd pyapi
 unzip devdocker.zip
 ```
-Change into the devdocker directory and review these files.
+Change into the devdocker directory and review these files. For example the .env file sets the port for the frontend
+```txt
+TRAEFIK_HTTP_PORT=80
+TRAEFIK_HTTPS_PORT=443
+```
 
 Pull the pre-made docker images from docker hub
 ```sh
@@ -44,7 +48,6 @@ To also build these projects uncomment the build lines in docker-compose.overrid
     #  dockerfile: ./pythonrpcserver.Dockerfile
 
 ```
-
 Build the project(s). This will take more than 10 minutes, especially the first time.
 ```sh
 docker compose build
