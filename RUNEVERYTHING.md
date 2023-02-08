@@ -1,3 +1,9 @@
+ClassTranscribe consists as a set of docker images. These instructions walk through setting everything to run locally, including the database, all of the backend projects and the frontend too. You will need to install Docker.
+
+M1 Macs are not currently supported.
+
+## Setting up ClassTranscribe
+
 Create a project directory
 
 ```sh
