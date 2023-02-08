@@ -1,0 +1,60 @@
+Create a project directory
+
+```sh
+mkdir ClassTranscribe
+cd ClassTranscribe
+```
+
+Checkout the 3 main projects of ClassTranscribe, FrontEnd,WebAPI and pyapi
+```sh
+#Choose your prefered way to clone the project...
+BASE=git@github.com:classtranscribe
+BASE=https://github.com/classtranscribe/
+
+git clone $BASE/FrontEnd.git
+git clone $BASE/WebAPI.git
+git clone $BASE/pyapi.git
+```
+
+Unzip the docker compose files (docker-compose.yml and docker-compose.override.yml) and initial environment files (.env). 
+Windows Explorer can also be used to unzip the file.
+These files are provided as a zip file because you will probably want to edit them.
+
+```sh
+cd pyapi
+unzip devdocker.zip
+```
+Change into the devdocker directory and review these files.
+
+Pull the pre-made docker images from docker hub
+```sh
+docker compose pull
+```
+To save time you can use the premade images for api, frontend and pyapi already on dockerhub.
+To also build these projects uncomment the build lines in docker-compose.override.yml
+```yml
+    #build:
+    #  context: ../WebAPI
+    #  dockerfile: ./pythonrpcserver.Dockerfile
+
+```
+
+Build the three projects (this will take more than 10 minutes, especially the first time)
+```sh
+docker compose build
+```
+
+Start the database and message queue
+```sh
+docker compose up -d db rabbitmq
+```
+Start everything
+```sh
+docker compose up -d
+```
+Look at the logs of one or all containers
+```sh
+docker compose logs --tail=4 pyapi
+# Or all containers
+docker compose logs --tail=4
+```
