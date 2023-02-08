@@ -39,16 +39,16 @@ To also build these projects uncomment the build lines in docker-compose.overrid
 
 ```
 
-Build the three projects (this will take more than 10 minutes, especially the first time)
+Build the project(s). This will take more than 10 minutes, especially the first time.
 ```sh
 docker compose build
 ```
 
-Start the database and message queue
+Start the Postgres database and message queue containers
 ```sh
 docker compose up -d db rabbitmq
 ```
-Start everything
+Just start everything
 ```sh
 docker compose up -d
 ```
