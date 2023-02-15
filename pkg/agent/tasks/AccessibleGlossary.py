@@ -72,6 +72,7 @@ class AccessibleGlossary(AbstractTask):
                                                 "likes": 0,
                                                 "shared": True,
                                                 "editable": True,
+                                                "explanation": g[6],
                                                 "courseId": courseId,
                                                 "offeringId": offeringId
                                             }))
