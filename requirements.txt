@@ -20,7 +20,7 @@ prefixspan==0.5.2
 # OpenAI whisper dependencies
 whisper==1.0
 ffmpeg-python==0.2.0
-torch==1.12.1
+torch==1.13.1
 
 # Flask + Connexion + OpenAPI dependencies
 Flask==2.0.2

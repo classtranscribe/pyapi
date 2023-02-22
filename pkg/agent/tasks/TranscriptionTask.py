@@ -12,9 +12,11 @@ class TranscriptionTask(AbstractTask):
     def get_name():
         return "TranscriptionTask"
 
+
     def transcribe(self, video_id, video, language, model):
-        # TODO check video fetching and extract audio
+        # TODO check video fetching
         model = whisper.load_model(model)
+        # TODO get audio file/filepath
         transcription = whisper.transcribe(model=model, audio=audio_filepath, verbose=True)
         return transcription
 
@@ -28,8 +30,6 @@ class TranscriptionTask(AbstractTask):
             return
         else:
             # TODO: short-circuit if transcription already exists
-            return
-                # TODO: Fetch video by id (to get phrases?)
         
         parameters = body.get('TaskParameters', {})
         # TODO check if I can get custom params
@@ -46,3 +46,7 @@ class TranscriptionTask(AbstractTask):
             return
 
         transcription = self.transcribe(video_id, video, language, model)
+        # TODO send this on API
+        self.logger.info(' [.] TranscriptionTask completed for video_id %s' % video_id)
+
+        return
