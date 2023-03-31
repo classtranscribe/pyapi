@@ -105,9 +105,10 @@ def new_look_up_wiki(term):
         formated_term = '_'.join(filtered_results[0].split(' '))
         sentence, summary, url = get_one_sentence_and_url(formated_term)
         if sentence == 'Ambiguous meaning' or sentence == 'Not available':
-            return []
+            return integrated_result
         else:
-            return [filtered_results[0], sentence, 'General', 'Wikipedia', 'CC BY-SA', url, summary]
+            integrated_result.append([filtered_results[0], sentence, 'General', 'Wikipedia', 'CC BY-SA', url, summary])
+            return integrated_result
 
 def look_up(phrase_hints):
     raw_terms = phrase_hints.splitlines()
