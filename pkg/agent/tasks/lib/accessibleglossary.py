@@ -58,16 +58,16 @@ assert sentence2[0 : first_valid_period(sentence2) + 1] == 'It is now 5:00 P.M. 
 
 def get_one_sentence_and_url(term):
     if wiki_en.page(term).exists() == False:
-        return 'Not available', 'Not available'
+        return 'Not available', 'Not available', 'Not available'
     
     summary = wiki_en.page(term).summary
     url = wiki_en.page(term).fullurl
     first_period = first_valid_period(summary)
     sentence = summary[0: first_period + 1]
-    if ' may refer to:' in sentence:
-        return 'Ambiguous meaning', url
+    if 'refer to:' in sentence or 'refers to:' in sentence:
+        return 'Ambiguous meaning', 'Ambiguous meaning', url
     
-    return sentence, url
+    return sentence, summary, url
 
 def get_domain_wiki(raw_results):
     domains = []
@@ -90,7 +90,7 @@ def get_domain_wiki(raw_results):
             
     return domains, filtered_results
 
-def look_up_wiki(term):
+def new_look_up_wiki(term):
     integrated_result = []
     search_results = wikipedia.search(term).copy()
     if len(search_results) == 0:
@@ -98,23 +98,23 @@ def look_up_wiki(term):
     
     wiki_term = search_results[0]
     domains, filtered_results = get_domain_wiki(search_results)
-    for i in range(min(2, len(filtered_results))):
-        formated_term = '_'.join(filtered_results[i].split(' '))
-        sentence, url = get_one_sentence_and_url(formated_term)
-        integrated_result.append([filtered_results[i], sentence, 'General', 'Wikipedia', 'CC BY-SA', url])
-
-    for domain in domains:
-        formated_term = term + '_(' + '_'.join(domain.split(' ')) + ')'
-        sentence, url = get_one_sentence_and_url(formated_term)
-        integrated_result.append([wiki_term, sentence, domain, 'Wikipedia', 'CC BY-SA', url])
-        
-    return integrated_result
+    
+    if len(filtered_results) == 0:
+        return []
+    else:
+        formated_term = '_'.join(filtered_results[0].split(' '))
+        sentence, summary, url = get_one_sentence_and_url(formated_term)
+        if sentence == 'Ambiguous meaning' or sentence == 'Not available':
+            return integrated_result
+        else:
+            integrated_result.append([filtered_results[0], sentence, 'General', 'Wikipedia', 'CC BY-SA', url, summary])
+            return integrated_result
 
 def look_up(phrase_hints):
     raw_terms = phrase_hints.splitlines()
 
     glossary = []
     for term in raw_terms:
-        glossary.extend(look_up_wiki(term))
+        glossary.extend(new_look_up_wiki(term))
 
     return glossary

@@ -37,8 +37,6 @@ NOTE: By default, a sqlite file will be created.
 ## Getting Started
 This project can either be run with Python or as a Docker container.
 
-To run all of ClassTranscribe locally (including the frontend and C# backend) see RunEverything.md
-
 ### With Python
 Install dependencies:
 ```bash
@@ -80,3 +78,11 @@ NOTE: `--build` will automatically rebuild the Docker image needed for this stac
 Navigate to http://localhost:5000/ui/ to test the API with Swagger UI.
 
 NOTE: In Docker on Mac/Windows, you may need to use your IP address instead of localhost.
+
+
+## TODO
+* Produce schemas/repositories for generated models
+* Test generated models with basic example
+* RabbitMQ connections
+* Parity for WebAPI behavior
+* Parity for TaskEngine subproject
