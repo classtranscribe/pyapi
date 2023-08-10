@@ -143,3 +143,6 @@ cookies
 client/
 generated/
 **/corpus_count.json
+.vscode/settings.json
+devdocker/devdocker/docker-compose.override.yml
+devdocker/devdocker/docker-compose.yml
