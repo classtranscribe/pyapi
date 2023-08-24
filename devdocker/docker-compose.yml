@@ -1,0 +1,238 @@
+version: "3.4"
+
+services:
+
+  # webserver to handle all traffic. This can use let's encrypt to generate a SSL cert.
+  traefik:
+    image: traefik:v1.7
+    command:
+      - --loglevel=INFO
+      - --api
+      # Entrypoints
+      - --defaultentrypoints=https,http
+      - --entryPoints=Name:http Address::${TRAEFIK_HTTP_PORT:-8000} ${TRAEFIK_HTTP_REDIRECT:-""}
+      - --entryPoints=Name:https Address::${TRAEFIK_HTTPS_PORT:-8443} ${TRAEFIK_HTTPS_OPTIONS:-TLS}
+      # Configuration for acme (https://letsencrypt.org/)
+      - --acme=${TRAEFIK_ACME_ENABLE:-false}
+      #- --acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --acme.email=${ADMIN_USER_ID:-""}
+      - --acme.entrypoint=https
+      - --acme.onhostrule=true
+      - --acme.storage=/config/acme.json
+      - --acme.httpchallenge.entrypoint=http
+      - --acme.storage=/config/acme.json
+      - --acme.acmelogging=true
+      - --acme.domains=${HOST_NAME:-""}
+      - --acme.domains=${TRAEFIK_ADDITIONAL_HOST1:-""}
+      - --acme.domains=${TRAEFIK_ADDITIONAL_HOST2:-""}
+      # DOCKER
+      - --docker=true
+      - --docker.endpoint=unix:///var/run/docker.sock
+      - --docker.exposedbydefault=false
+      - --docker.watch=true
+      # - --docker.domain=docker.localhost
+    #restart: unless-stopped
+    ports:
+      - "${TRAEFIK_HTTP_PORT-8000}:${TRAEFIK_HTTP_PORT:-8000}"
+      - "${TRAEFIK_HTTPS_PORT-8443}:${TRAEFIK_HTTPS_PORT:-8443}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.port=8080"
+      - "traefik.frontend.rule=PathPrefixStrip: /traefik"
+      - "traefik.website.frontend.whiteList.sourceRange=${TRAEFIK_IPFILTER:-172.16.0.0/12}"
+      # - "traefik.http.middlewares.test-auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DATA:-~/docker_data}/traefik:/config
+    container_name: "traefik"
+
+  db:
+    image: postgres:11.7
+    volumes:
+      - "${DATA:-~/docker_data}/pgvolume:/var/lib/postgresql/data"
+    ports:
+      - "127.0.0.1:5432:5432"
+    env_file:
+      - ".env"
+    environment:
+      - POSTGRES_USER=${ADMIN_USER_ID:-guest}
+      - POSTGRES_PASSWORD=${ADMIN_PASSWORD:-guest}
+    container_name: "db"
+
+  pgadmin:
+    image: dpage/pgadmin4:4.11
+    depends_on:
+      - db
+      - traefik
+    volumes:
+      - "${DATA:-~/docker_data}/pga4volume:/var/lib/pgadmin"
+    env_file:
+      - ".env"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${ADMIN_USER_ID:-guest}
+      - PGADMIN_DEFAULT_PASSWORD=${ADMIN_PASSWORD:-guest}
+    container_name: "pgadmin"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=pgadmin"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=PathPrefix:/pgadmin"
+      - "traefik.website.frontend.whiteList.sourceRange=${TRAEFIK_IPFILTER:-172.16.0.0/12}"
+
+  rabbitmq:
+    image: rabbitmq:3.8.19-management
+    container_name: "rabbitmq"
+    env_file:
+      - ".env"
+    #restart: unless-stopped
+    environment:
+      # - RABBITMQ_CONFIG_FILE=/data/config/rabbitmq
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management path_prefix "/rabbitmq"
+      - RABBITMQ_DEFAULT_USER=${ADMIN_USER_ID:-guest}
+      - RABBITMQ_DEFAULT_PASS=${ADMIN_PASSWORD:-guest}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=rabbitmq"
+      - "traefik.port=15672"
+      - "traefik.frontend.rule=PathPrefix:/rabbitmq"
+      - "traefik.website.frontend.whiteList.sourceRange=${TRAEFIK_IPFILTER:-172.16.0.0/12}"
+  
+  pythonrpcserver:
+    image: classtranscribe/pythonrpcserver:staging
+    container_name: "pythonrpcserver"
+    env_file:
+      - ".env"
+    volumes:
+        - "${DATA:-~/docker_data}/data:/data"
+    ports:
+      - "127.0.0.1:50051:50051"
+  
+  api:
+    image: classtranscribe/api:staging
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: "api"
+    depends_on:
+      - db
+      - rabbitmq
+      - traefik
+    env_file:
+      - ".env"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=api"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=PathPrefix: /api/,/data/,/swag"
+      - "traefik.website.frontend.whiteList.sourceRange=${TRAEFIK_IPFILTER:-172.16.0.0/12}"
+    command: "/wait-for rabbitmq:5672 --timeout=50 -- dotnet /app/ClassTranscribeServer.dll"
+
+  taskengine:
+    image: classtranscribe/taskengine:staging
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: "taskengine"
+    depends_on:
+      - db
+      - rabbitmq
+      - pythonrpcserver
+    env_file:
+      - ".env"
+    command: "/wait-for rabbitmq:5672 --timeout=50 -- dotnet /app/TaskEngine.dll"
+  
+
+  frontend:
+    image: classtranscribe/frontend:staging
+    env_file:
+      .env
+    depends_on:
+      - traefik
+      #- api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=frontend"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=PathPrefix: /"
+      - "traefik.website.frontend.whiteList.sourceRange=${TRAEFIK_IPFILTER:-172.16.0.0/12}"
+    container_name: "frontend"
+    volumes:
+      - "${DATA:-~/docker_data}/live:/build/live"
+
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+    volumes:
+      - "${DATA:-~/docker_data}/elasticsearch:/usr/share/elasticsearch/data"
+    environment:
+      - xpack.monitoring.enabled=true
+      - xpack.watcher.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
+
+  scenedetection:
+    image: classtranscribe/ct-python:staging
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: scenedetection
+    depends_on:
+      - rabbitmq
+      - api
+      - taskengine
+    env_file:
+      - ".env"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DATA_DIRECTORY: "/data"
+      RABBITMQ_QUEUENAME: 'SceneDetection'
+      SCENE_DETECT_ALGORITHM_CLASS: "SvmPoly2"
+      SCENE_DETECT_ALGORITHM_MODULE: "pkg.agent.tasks.lib.scenedetection.svm_poly2"
+
+  phrasehinter:
+    image: classtranscribe/ct-python:staging
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: phrasehinter
+    depends_on:
+      - rabbitmq
+      - api
+      - taskengine
+    env_file:
+      - ".env"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DATA_DIRECTORY: "/data"
+      RABBITMQ_QUEUENAME: 'PhraseHinter'
+
+  glossary:
+    image: classtranscribe/ct-python:staging 
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: "glossary"
+    depends_on:
+      - api
+      - rabbitmq
+      - taskengine
+      - db
+    env_file:
+      - ".env"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DATA_DIRECTORY: "/data"
+      RABBITMQ_QUEUENAME: 'AccessibleGlossary'
+      
+  crawler:
+    image: classtranscribe/ct-python:staging 
+    volumes:
+      - "${DATA:-~/docker_data}/data:/data"
+    container_name: "crawler"
+    depends_on:
+      - api
+      - rabbitmq
+      - taskengine
+      - db
+    env_file:
+      - ".env"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DATA_DIRECTORY: "/data"
+      RABBITMQ_QUEUENAME: 'PythonCrawler'

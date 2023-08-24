@@ -1,0 +1,59 @@
+version: "3.4"
+
+
+
+services:
+  frontend:
+    image: classtranscribe/frontend:staging
+    build: 
+      context: ../../FrontEnd
+      dockerfile: ./Dockerfile
+
+  api:
+    image: classtranscribe/api:staging
+    build:
+      context: ../../WebAPI
+      target: publish
+      dockerfile: ./API.Dockerfile    
+    environment:
+      - LogEntityFrameworkSQL=true
+
+
+  taskengine:
+    image: classtranscribe/taskengine:staging
+    build:
+      context: ../../WebAPI
+      target: publish
+      dockerfile: ./TaskEngine.Dockerfile
+
+  pythonrpcserver:
+    image: classtranscribe/pythonrpcserver:staging
+    build:
+      context: ../../WebAPI
+      dockerfile: ./pythonrpcserver.Dockerfile
+      
+  scenedetection:  
+    image: classtranscribe/ct-python:staging
+    build:
+      context: ../
+      dockerfile: ./Dockerfile
+    environment:
+      RABBITMQ_URI: 'amqp://mahipal2%40illinois.edu:Test123@rabbitmq:5672/%2f'
+
+  phrasehinter:
+    image: classtranscribe/ct-python:staging
+    # No need to specify a build here; scene detection will build the image
+    environment:
+      RABBITMQ_URI: 'amqp://mahipal2%40illinois.edu:Test123@rabbitmq:5672/%2f'
+  
+  glossary:
+    image: classtranscribe/ct-python:staging
+    # No need to specify a build here; scene detection will build the image
+    environment:
+      RABBITMQ_URI: 'amqp://mahipal2%40illinois.edu:Test123@rabbitmq:5672/%2f'
+  
+  crawler:
+    image: classtranscribe/ct-python:staging
+    # No need to specify a build here; scene detection will build the image
+    environment:
+      RABBITMQ_URI: 'amqp://mahipal2%40illinois.edu:Test123@rabbitmq:5672/%2f'
