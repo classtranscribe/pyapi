@@ -1,4 +1,4 @@
-name: Docker
+name: Platform
 
 # This will run when: requirements-platform.txt or Dockerfile-platform' are changed
 #
