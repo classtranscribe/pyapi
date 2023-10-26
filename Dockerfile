@@ -1,6 +1,9 @@
 FROM --platform=linux/amd64 python:3.11-slim-bookworm
+# Decord is not available on ARM64 (=OSX), so we are forced amd64
+# Note the decord build instructions here are insufficient did not immediately work with Debain bookworm 
+# https://github.com/dmlc/decord#installation
 
-# FROM python:3.11.2
+
 # Install OS dependencies
 RUN apt-get -qq update && \
     apt-get -qq install --no-install-recommends vim-tiny  netcat-openbsd curl git wget ffmpeg build-essential libsm6 libxext6 libxrender-dev automake libtool pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev && \
@@ -14,7 +17,7 @@ RUN curl -L https://github.com/tesseract-ocr/tesseract/archive/refs/tags/4.1.3.t
 
 #RUN curl -L https://github.com/tesseract-ocr/tesseract/archive/refs/tags/4.1.1.tar.gz | tar xvz
 
-ARG MAX_THREADS="4"
+ARG MAX_THREADS=""
 
 WORKDIR /tesseract-4.1.3
 RUN ./autogen.sh && ./configure && make -j ${MAX_THREADS} && make -j ${MAX_THREADS} install && ldconfig
