@@ -11,6 +11,7 @@ on:
     paths:
       - 'requirements-platform.txt'
       - 'Dockerfile-platform'
+      - '.github/workflows/platform.yml'
       
     branches:
       - main
