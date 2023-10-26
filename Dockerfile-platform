@@ -1,0 +1,44 @@
+FROM --platform=linux/amd64 python:3.11-slim-bookworm
+# Decord is not available on ARM64 (=OSX), so we are forced amd64
+# Note the decord build instructions here are insufficient did not immediately work with Debain bookworm 
+# https://github.com/dmlc/decord#installation
+
+
+# Install OS dependencies
+RUN apt-get -qq update && \
+    apt-get -qq install --no-install-recommends vim-tiny  netcat-openbsd curl git wget ffmpeg build-essential libsm6 libxext6 libxrender-dev automake libtool pkg-config libsdl-pango-dev libicu-dev libcairo2-dev bc libleptonica-dev && \
+    apt-get -qq clean autoclean && \
+    apt-get -qq autoremove && \
+    rm -rf /var/lib/apt/lists/*
+
+# Build stuff for tesseract
+# Based on https://medium.com/quantrium-tech/installing-tesseract-4-on-ubuntu-18-04-b6fcd0cbd78f
+RUN curl -L https://github.com/tesseract-ocr/tesseract/archive/refs/tags/4.1.3.tar.gz | tar xvz
+
+WORKDIR /tesseract-4.1.3
+
+# On M1 Macbook (with 6GB Ram assigned to Docker and 3GB Swao) trying to cross-compile fails if all 8 CPU cores are used.
+ARG MAX_THREADS="2"
+
+RUN ./autogen.sh && ./configure && make -j ${MAX_THREADS} && make -j ${MAX_THREADS} install && ldconfig
+# Slow! The above line takes 435 seconds on my laptop (1590.8s on a M1 cross compiling to amd64)
+RUN make -j ${MAX_THREADS} training && make -j ${MAX_THREADS} training-install
+# The above line takes 59 seconds on my laptop. 127.3s on my M1 laptop cross compiling
+
+RUN curl -L -o tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+RUN curl -L -o tessdata/osd.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata
+
+ENV TESSDATA_PREFIX=/tesseract-4.1.3/tessdata
+
+#Disable multi-threading
+ENV OMP_THREAD_LIMIT=1
+
+# Install Python dependencies
+WORKDIR /usr/app
+COPY requirements-platform.txt .
+RUN pip install --upgrade pip 
+RUN pip install --no-cache-dir -r requirements-platform.txt
+RUN python -m nltk.downloader brown stopwords wordnet omw-1.4
+
+
+
