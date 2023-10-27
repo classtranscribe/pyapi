@@ -1,0 +1,10 @@
+
+# ai/sci tools
+numpy==1.23.5
+pytesseract==0.3.9
+opencv-python==4.5.5.64
+decord==0.6.0
+scikit-image==0.19.2
+mtcnn-opencv==1.0.2
+nltk==3.7
+prefixspan==0.5.2
