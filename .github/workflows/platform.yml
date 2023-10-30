@@ -19,7 +19,12 @@ on:
       - expt
 
   pull_request:
+      paths:
+      - 'requirements-platform.txt'
+      - 'Dockerfile-platform'
+      - '.github/workflows/platform.yml'
   # Trigger the workflow on release activity
+  
   release:
     # Only use the types keyword to narrow down the activity types that will trigger your workflow.
     types:
