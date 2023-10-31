@@ -8,14 +8,15 @@ jsonschema==3.2.0
 Jinja2
 
 # ai/sci tools
-numpy==1.23.5
-pytesseract==0.3.9
-opencv-python==4.5.5.64
-decord==0.6.0
-scikit-image==0.19.2
-mtcnn-opencv==1.0.2
-nltk==3.7
-prefixspan==0.5.2
+# These are already preinstalled in the base image (see requirements-platform.txt)
+##numpy==1.23.5
+## pytesseract==0.3.9
+## opencv-python==4.5.5.64
+## decord==0.6.0
+## scikit-image==0.19.2
+## mtcnn-opencv==1.0.2
+## nltk==3.7
+## prefixspan==0.5.2
 
 # Flask + Connexion + OpenAPI dependencies
 Flask==2.0.2

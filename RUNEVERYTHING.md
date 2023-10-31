@@ -1,6 +1,14 @@
-ClassTranscribe consists as a set of docker images. These instructions walk through setting everything to run locally, including the database, all of the backend projects and the frontend too. You will need to install Docker.
+ClassTranscribe consists as a set of docker images. These instructions walk through setting everything to run locally, including the database, all of the backend projects and the frontend too. 
 
-M1 Macs are not currently supported.
+## Set up Docker correctly!
+
+You will need to install Docker by following the official Docker [instructions](https://docs.docker.com/engine/install/)
+
+Did you install Ubuntu's snap version of Docker? The overlay filesystem won't work! (You might see `Permission denied:` filesystem errors when building from a Dockerfile). So Purge the snap, ```sudo snap remove --purge Docker``` and follow the official Docker install instructions instead.
+
+If you have enough ram, we recommend 6 GB RAM for your Docker Machine.
+
+M1 Macs are not natively supported but can build and run AMD64 images.
 
 ## Setting up ClassTranscribe
 
@@ -40,14 +48,15 @@ Pull the pre-made docker images from docker hub
 ```sh
 docker compose pull
 ```
-To save time you can use the premade images for api, frontend and pyapi already on dockerhub.
-To also build these projects uncomment the build lines in docker-compose.override.yml
+To save time you can use the premade images for api, frontend and pyapi projects already on dockerhub.
+Look at docker-compose.override.yml ; if you want to use the pre-made images comment the build lines
+
 ```yml
     #build:
     #  context: ../WebAPI
     #  dockerfile: ./pythonrpcserver.Dockerfile
-
 ```
+
 Build the project(s). This will take more than 10 minutes, especially the first time.
 ```sh
 docker compose build
