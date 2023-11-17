@@ -36,6 +36,8 @@ class PythonCrawler(AbstractTask):
             num_glossary = 2
 
         for i in range(num_glossary):
+            print("Start to process %d of %d ASL video(s)" % (i+1, num_glossary))
+
             try:
                 glossary_single = raw_glossaries[i]
 
@@ -111,7 +113,10 @@ class PythonCrawler(AbstractTask):
             except Exception as e:
                 self.logger.error(' [%s] PythonCrawler failed to look up for a specific term: %s' % (source_id, str(e)))
                 return
+            
+            print("Finished processing %d of %d ASL video(s)" % (i+1, num_glossary))
 
+        print("All ASL video(s) processed")
         self.logger.info(' [%s] PythonCrawler complete!' % source_id)
 
         return
