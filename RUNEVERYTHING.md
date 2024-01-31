@@ -66,10 +66,16 @@ Start the Postgres database and message queue containers
 ```sh
 docker compose up -d db rabbitmq
 ```
-Just start everything
+To start everything
 ```sh
 docker compose up -d
 ```
+
+However often you will only need a few containers running, for example
+```sh
+docker compose up -d frontend api taskengine
+```
+
 Look at the logs of one or all containers
 ```sh
 # Check the status of all of the containers
