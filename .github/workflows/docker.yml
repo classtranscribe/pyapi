@@ -1,8 +1,8 @@
 name: Docker
 
 # This will run when:
-# - when new code is pushed to main/develop to push the tags
-#   latest and develop
+# - when new code is pushed to main/staging to push the tags
+#   latest and staging
 # - when a pull request is created and updated  to make sure the
 #   Dockerfile is still valid.
 # To be able to push to dockerhub, this execpts the following
@@ -17,7 +17,7 @@ on:
       - expt
 
   pull_request:
-  
+
   # Trigger the workflow on release activity
   release:
     # Only use the types keyword to narrow down the activity types that will trigger your workflow.
@@ -30,101 +30,106 @@ on:
 env:
   MAIN_REPO: classtranscribe/pyapi
   DOCKERHUB_ORG: classtranscribe
+  IMAGE: ct-python
+  PLATFORMS: "linux/amd64,linux/arm64"
 
 jobs:
   docker:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix:
-        name:
-          - ct-python
-        include:
-          - name: ct-python
-            FOLDER: .
-            IMAGE: ct-python
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # calculate some variables that are used later
-      - name: github branch
+      - name: variable setup
         run: |
           if [ "${{ github.event.release.target_commitish }}" != "" ]; then
             BRANCH="${{ github.event.release.target_commitish }}"
+          elif [[ $GITHUB_REF =~ pull ]]; then
+            BRANCH="$(echo $GITHUB_REF | sed 's#refs/pull/\([0-9]*\)/merge#PR-\1#')"
           else
             BRANCH=${GITHUB_REF##*/}
           fi
-          echo "GITHUB_BRANCH=${BRANCH}" >> $GITHUB_ENV
-          
-          # Commit was for main/release branch, build a new version
-          if [ "$BRANCH" == "master" -o "$BRANCH" == "main" ]; then
+
+          if [ "$BRANCH" == "master" ]; then
             version="$(cat gui/package.json | jq -r .version)"
-            echo "VERSION=$(version)" >> $GITHUB_ENV
             tags="latest"
             oldversion=""
             while [ "${oldversion}" != "${version}" ]; do
               oldversion="${version}"
-              tags="${tags},${version}"
+              tags="${tags} ${version}"
               version=${version%.*}
             done
-            echo "TAGS=${tags}" >> $GITHUB_ENV
+            version="$(awk '/version = / { print $4 }' project/Build.scala | sed 's/"//g')"
+          elif [ "$BRANCH" == "staging" ]; then
+            version="staging"
+            tags="staging"
           else
-            echo "VERSION=$BRANCH" >> $GITHUB_ENV
-            echo "TAGS=$BRANCH" >> $GITHUB_ENV
+            version="test"
+            tags="${BRANCH}"
           fi
 
-      # build the docker image, this will always run to make sure
-      # the Dockerfile still works.
-      - name: Build image
-        uses: elgohr/Publish-Docker-Github-Action@2.22
-        env:
-          BRANCH: ${{ env.GITHUB_BRANCH }}
-          VERSION: ${{ env.VERSION }}
-          BUILDNUMBER: ${{ github.run_number }}
-          GITSHA1: ${{ github.sha  }}
-        with:
-          registry: docker.pkg.github.com
-          name: ${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ matrix.IMAGE }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
-          buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
-          no_push: true
+          push_tags=""
+          for tag in ${tags}; do
+            push_tags="${push_tags}${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}:${tag},"
+            push_tags="${push_tags}ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${tag},"
+          done
+          push_tags="${push_tags%,*}"
 
-      # TODO: need publish permissions for ghcr.io
-      # this will publish to github container registry
-      #- name: Publish to GitHub
-      #  if: github.event_name != 'pull_request' && github.repository == env.MAIN_REPO
-      #  uses: elgohr/Publish-Docker-Github-Action@2.22
-      #  env:
-      #    BRANCH: ${{ env.GITHUB_BRANCH }}
-      #    VERSION: ${{ env.VERSION }}
-      #    BUILDNUMBER: ${{ github.run_number }}
-      #    GITSHA1: ${{ github.sha  }}
-      #  with:
-      #    registry: ghcr.io
-      #    name: ${{ github.repository_owner }}/${{ matrix.IMAGE }}
-      #    username: ${{ secrets.GHCR_USERNAME }}
-      #    password: ${{ secrets.GHCR_PASSWORD }}
-      #    context: ${{ matrix.FOLDER }}
-      #    tags: "${{ env.TAGS }}"
-      #    buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
+          echo "BRANCH=${BRANCH}"
+          echo "VERSION=${version}"
+          echo "TAGS=${tags}"
+          echo "PUSH_TAGS=${push_tags}"
 
-      # this will publish to dockerhub
-      - name: Publish to Docker Hub
-        if: github.event_name != 'pull_request' && github.repository == env.MAIN_REPO
-        uses: elgohr/Publish-Docker-Github-Action@2.22
-        env:
-          BRANCH: ${{ env.GITHUB_BRANCH }}
-          VERSION: ${{ env.VERSION }}
-          BUILDNUMBER: ${{ github.run_number }}
-          GITSHA1: ${{ github.sha  }}
+          echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+          echo "VERSION=${version}" >> $GITHUB_ENV
+          echo "TAGS=${push_tags}" >> $GITHUB_ENV
+
+      # setup docker build
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Inspect Builder
+        run: |
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      # login to registries
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          name: ${{ env.DOCKERHUB_ORG }}/${{ matrix.IMAGE }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          context: ${{ matrix.FOLDER }}
-          tags: "${{ env.TAGS }}"
-          buildargs: BRANCH,VERSION,BUILDNUMBER,GITSHA1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # build the clowder docker images
+      - name: Build and push ${{ env.IMAGE }}-build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          cache-from: |
+            type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:${{ env.BRANCH }}
+            type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:staging
+          cache-to: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ env.IMAGE }}-cache:${{ env.BRANCH }},mode=max
+          tags: ${{ env.TAGS }}
+          build-args: |
+            BRANCH=${{ env.GITHUB_BRANCH }}
+            VERSION=${{ env.VERSION }}
+            BUILDNUMBER=${{ github.run_number }}
+            GITSHA1=${{ github.sha  }}
