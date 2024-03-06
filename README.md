@@ -2,6 +2,10 @@
 
 Powered by Flask + Connexion + SQLAlchemy
 
+## License
+
+Please see the open-source [License](https://github.com/classtranscribe/pyapi/blob/staging/LICENSE).
+
 ## Build Status
 
 | Branch | Status |
