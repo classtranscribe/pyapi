@@ -27,7 +27,7 @@ class FlashDetection(AbstractTask):
             timestamps = flashdetector.detect_flashes(video_path=file_path, speed=1)
 
             # save result to api
-            # self.jwt = self.update_jwt()
+            self.jwt = self.update_jwt()
             # resp = requests.post(url='%s/api/Task/UpdateSceneData?videoId=%s' % (self.target_host, video_id),
             #                         headers={'Content-Type': 'application/json', 'Authorization': 'Bearer %s' % self.jwt},
             #                         data=json.dumps({"Scenes": scenes, "ScenesMetadata": scenes_meta}))
