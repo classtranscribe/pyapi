@@ -467,7 +467,7 @@ def find_match(curr, ref, width, height, index):
 
         # FLANN parameters
         FLANN_INDEX_KDTREE = 1  # Use k-d trees for nearest neighbor search
-        NUM_TREES = 5  # Default, more trees is faster but uses more memory and is slower
+        NUM_TREES = 5  # Default, more trees is faster but uses more memory
         NUM_CHECKS = 50  # Number of neighbors to check
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = NUM_TREES) 
         search_params = dict(checks = NUM_CHECKS)  
