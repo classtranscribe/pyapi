@@ -566,6 +566,15 @@ def filter_scrolling(video_path, frame_cuts):
     return list(reversed(filtered_frame_cuts))
 
 def bgremove1(myimage):
+    """
+    Removes the background and returns a binary mask of inputted image.
+    
+    Args:
+        myimage: The image to be masked.
+    
+    Returns:
+        image: The masked image.
+    """
     # Blur to image to reduce noise
     myimage = cv2.GaussianBlur(myimage,(5,5), 0)
  
@@ -588,15 +597,16 @@ def bgremove1(myimage):
     # Perform Otsu thresholding and extract the foreground.
     # We use TOZERO_INV as we want to keep some details of the foreground
     ret,foreground = cv2.threshold(myimage_grey,0,255,cv2.THRESH_TOZERO_INV+cv2.THRESH_OTSU)  # Currently foreground is only a mask
+    
+    # Make foreground white 
+    ret,binary_mask = cv2.threshold(foreground, 0, 255, cv2.THRESH_BINARY)
+    
     # Set original (0,0,0) pixels to (1,1,1) to avoid miscount in remaining pixels
-    # TODO: doesn't seem to work
     myimage[myimage == 0] = 1
     foreground = cv2.bitwise_and(myimage,myimage, mask=foreground)  # Update foreground with bitwise_and to extract real foreground
     
-    # Combine the background and foreground to obtain our final image
-    finalimage = background+foreground
-
-    return finalimage
+    # Return the binary mask
+    return binary_mask
 
 def compare_annotations_difference(curr, ref):
     """
@@ -610,20 +620,13 @@ def compare_annotations_difference(curr, ref):
     Returns:
         bool: True if most of curr is contained within ref, False otherwise.
     """
+    # Subtract the frames
+    diff = cv2.absdiff(ref, curr)
 
-    # Calculate differences between frames at each pixel
-    diff_squared = np.sum((ref - curr)**2, axis=2) 
+    changed_pixels = cv2.countNonZero(diff)
+    total_pixels = diff.size
 
-    # Could put a filter on diff_squared to reduce weight of differences towards the edges of the frame
-
-    # For each pair of pixels, if pixels are similar enough, then ref contains curr and declare no difference
-    curr[diff_squared < 100] = 0
-
-    # Count different pixels
-    num_different = np.count_nonzero(curr)
-
-    # Return true if sufficiently similar
-    return num_different < len(curr) * 0.015 
+    return changed_pixels/total_pixels < 0.055  # Adjustable threshold
 
 def filter_annotations(video_path, frame_cuts):
     """
@@ -650,12 +653,12 @@ def filter_annotations(video_path, frame_cuts):
     # If true (difference below threshold),  do not add to filtered_frame_cuts; else add 
     frame_vr = vr_full[filtered_frame_cuts[0]]
     reference_frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
-    processed_reference_frame = bgremove1(reference_frame)
+    processed_reference_frame = bgremove1(reference_frame, 0)
 
     for i in range(1, len(frame_cuts)):
         frame_vr = vr_full[frame_cuts[i]]
         curr_frame = cv2.cvtColor(frame_vr.asnumpy(), cv2.COLOR_RGB2BGR)
-        processed_curr_frame = bgremove1(curr_frame)
+        processed_curr_frame = bgremove1(curr_frame, i)
 
         # If current frame is contained within reference frame, skip
         if compare_annotations_difference(processed_curr_frame, processed_reference_frame):
@@ -663,7 +666,7 @@ def filter_annotations(video_path, frame_cuts):
 
         # Else, add current frame and update reference frame (processed_reference_frame)
         filtered_frame_cuts.append(frame_cuts[i])
-        processed_reference_frame = processed_curr_frame
+        processed_reference_frame = processed_curr_frame.copy() # put this copy part so it doesnt modify
 
     return list(reversed(filtered_frame_cuts))  
 
