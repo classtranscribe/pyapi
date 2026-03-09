@@ -462,7 +462,7 @@ def find_match(curr, ref, width, height, index):
 
         # If no features were found in either image, skip
         if des1 is None or des2 is None or len(kp1) < 2 or len(kp2) < 2:
-            print(f"No descriptors found (des1={des1 is None}, des2={des2 is None}) at index {index}")
+            # print(f"No descriptors found (des1={des1 is None}, des2={des2 is None}) at index {index}")
             return False
 
         # FLANN parameters
@@ -483,15 +483,11 @@ def find_match(curr, ref, width, height, index):
             if m.distance < DISTANCE_RATIO * n.distance:
                 good.append(m)
 
-        print("Matches: ", len(matches))
-        print("Good: ", len(good))
-        print("Good ratio: ", len(good)/len(matches))
-
         # If fewer than MIN_GOOD found between frames, then it's unlikely
         # they are scrolled versions of each other
         MIN_GOOD_RATIO = 0.2  # Increase to require more matches for two frames to be considered related
         if len(good)/len(matches) < MIN_GOOD_RATIO:
-            print("Not enough good matches to estimate motion")
+            # print("Not enough good matches to estimate motion")
             return False
 
         # Calculating distances for matched pairs
@@ -506,17 +502,13 @@ def find_match(curr, ref, width, height, index):
         # If not enough agree, it's unlikely the frames are scrolled versions of each other
         MIN_INLIER_RATIO = 0.3 # Increase to require more consistent motion between frames 
         if inlier_ratio < MIN_INLIER_RATIO:
-            print("Reject: not enough inliers")
+            # print("Not enough inliers")
             return False
 
         tx = M[0,2]  # translation in x
         ty = M[1,2]  # translation in Y
         # sx = np.sqrt(M[0,0]**2 + M[1,0]**2)  # scale in x
         sy = np.sqrt(M[0,1]**2 + M[1,1]**2)  # scale in y
-        
-        print("x-shift: ", tx)
-        print("y-shift: ", ty)
-        print("y-scale: ", sy)
 
         if abs(sy - 1) > 0.01 or abs(ty) > 1 or abs(tx) > 1:
             return True
@@ -548,12 +540,12 @@ def filter_scrolling(video_path, frame_cuts):
     cap.set(cv2.CAP_PROP_POS_FRAMES, filtered_frame_cuts[0])
     ret, frame = cap.read()
     height, width, channels = frame.shape
-    reference_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    reference_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     for i in range(1, len(frame_cuts)):
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_cuts[i])
         ret, frame = cap.read()
-        curr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        curr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # If reference frame is reasonably found within current frame, skip
         if find_match(curr_frame, reference_frame, width, height, i):
@@ -837,7 +829,7 @@ class SvmPoly3(SceneDetectionAlgorithm):
         start_time = perf_counter()
 
         # 1. Enumerate candidates as subprocess and block until it completes
-        print(' >>>>> USING NEW SceneDetection Running Step 1/3 (subprocess): ' + video_path)
+        print(' >>>>> SceneDetection Running Step 1/3 (subprocess): ' + video_path)
         (min_samples_between_cut, num_samples, num_frames, everyN, timestamps,
             sim_structural, sim_structural_no_face, sim_ocr) = self.enumerate_scene_candidates_batch(video_path, start_time)
 
@@ -866,7 +858,7 @@ class SvmPoly3(SceneDetectionAlgorithm):
             if samples_cut_candidates[i] >= samples_cut_candidates[i - 1] + min_samples_between_cut:
                 sample_cuts += [samples_cut_candidates[i]]
 
-        if num_samples > 1:
+        if num_samples > 1 and ((num_samples - 1) not in sample_cuts):
             sample_cuts += [num_samples - 1]
 
         # Now work in frames again. Make sure we are using regular ints (not numpy ints) other json serialization will fail
@@ -874,6 +866,10 @@ class SvmPoly3(SceneDetectionAlgorithm):
 
         # Filter out frames differing only by scrolling
         filtered_frame_cuts = filter_scrolling(video_path, frame_cuts)
+
+        # Readd the beginning of the video, if we've removed it
+        if 0 not in filtered_frame_cuts:
+            filtered_frame_cuts.insert(0, 0)
 
         filtered_frame_cuts = [int(x) for x in filtered_frame_cuts]
 
