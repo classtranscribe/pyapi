@@ -858,22 +858,23 @@ class SvmPoly3(SceneDetectionAlgorithm):
             if samples_cut_candidates[i] >= samples_cut_candidates[i - 1] + min_samples_between_cut:
                 sample_cuts += [samples_cut_candidates[i]]
 
+        # Add the last frame, if not present
         if num_samples > 1 and ((num_samples - 1) not in sample_cuts):
             sample_cuts += [num_samples - 1]
 
         # Now work in frames again. Make sure we are using regular ints (not numpy ints) other json serialization will fail
-        frame_cuts = [int(s * everyN) for s in sample_cuts]
+        frame_ends = [int((s - 1) * everyN) if s > 0 else 0 for s in sample_cuts]
 
         # Filter out frames differing only by scrolling
-        filtered_frame_cuts = filter_scrolling(video_path, frame_cuts)
+        filtered_frame_ends = filter_scrolling(video_path, frame_ends)
 
         # Readd the beginning of the video, if we've removed it
-        if 0 not in filtered_frame_cuts:
-            filtered_frame_cuts.insert(0, 0)
+        if 0 not in filtered_frame_ends:
+            filtered_frame_ends.insert(0, 0)
 
-        filtered_frame_cuts = [int(x) for x in filtered_frame_cuts]
+        filtered_frame_ends = [int(x) for x in filtered_frame_ends]
 
         # Finish up by calling helper method to cut scenes and run OCR
         print(' >>>>> SceneDetection Running Step 3/3 (mutiple subprocess): ' + video_path)
-        return self.extract_scene_information_batch(video_path, timestamps, filtered_frame_cuts, everyN, start_time)
-
+        return self.extract_scene_information_batch(video_path, timestamps, filtered_frame_ends, everyN, start_time)
+    

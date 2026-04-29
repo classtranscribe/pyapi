@@ -195,7 +195,7 @@ class SceneDetectionAlgorithm(ABC):
         cap = cv2.VideoCapture(video_path)
 
         for i, scene in enumerate(scenes):
-            requested_frame_number = (scene['frame_start'] + scene['frame_end']) // 2
+            requested_frame_number = requested_frame_number = scene['frame_end']
 
             t = perf_counter()
             if t >= last_log_time + 30:
